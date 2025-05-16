@@ -333,7 +333,12 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
           SizedBox(height: 16),
           VenueClientsWidget(
             venueId: _selectedVenue ?? '',
-            showPreviewData: true, // Use preview data for reliable display
+            showPreviewData: false, // Use real data from Firebase
+            onNavigateToUsersTab: () {
+              setState(() {
+                _selectedIndex = 1; // Navigate to Users tab
+              });
+            },
           ),
         ],
       ),

@@ -223,14 +223,14 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 33.0, 32.0, 32.0),
+        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 22.0),
+              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Coins distributed',
                 style: TextStyle(
@@ -314,13 +314,13 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
   Widget _buildMetricSection(String label, String value, Color valueColor) {
     if (_isLoading) {
       return Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 7.0),
+        padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Padding(
-      padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 7.0),
+      padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

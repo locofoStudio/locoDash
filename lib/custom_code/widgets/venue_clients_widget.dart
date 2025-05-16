@@ -23,6 +23,7 @@ class VenueClientsWidget extends StatefulWidget {
     this.textColor = const Color(0xFFFCFDFF),
     this.sessionsColor = const Color(0xFF6FA6A0),
     this.showPreviewData = false,
+    this.onNavigateToUsersTab,
   });
 
   final String venueId;
@@ -32,6 +33,7 @@ class VenueClientsWidget extends StatefulWidget {
   final Color textColor;
   final Color sessionsColor;
   final bool showPreviewData;
+  final VoidCallback? onNavigateToUsersTab;
 
   @override
   _VenueClientsWidgetState createState() => _VenueClientsWidgetState();
@@ -275,14 +277,14 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 33.0, 32.0, 32.0),
+        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 22.0),
+              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Clients',
                 style: TextStyle(
@@ -319,7 +321,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
               ],
             ),
             
-            SizedBox(height: 16),
+            SizedBox(height: 12),
             
             // Client list
             if (_isLoading)
@@ -407,7 +409,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
               ),
               
             // Fixed height spacer
-            SizedBox(height: 20),
+            SizedBox(height: 12),
             
             // Load more button
             Center(
@@ -421,14 +423,13 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
                 ),
                 child: TextButton(
                   onPressed: () {
-                    // Navigate to users page
-                    try {
-                      Navigator.of(context).pushNamed('UsersPageMobile');
-                    } catch (e) {
-                      print('Navigation error: $e');
-                      // Fallback option
+                    // Navigate to users tab using the callback
+                    if (widget.onNavigateToUsersTab != null) {
+                      widget.onNavigateToUsersTab!();
+                    } else {
+                      // Fallback message if callback not provided
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Users page coming soon')),
+                        SnackBar(content: Text('Users tab navigation not available')),
                       );
                     }
                   },

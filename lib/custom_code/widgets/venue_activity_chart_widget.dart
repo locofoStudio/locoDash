@@ -371,14 +371,14 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 33.0, 32.0, 32.0),
+        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 22.0),
+              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Activity',
                 style: TextStyle(

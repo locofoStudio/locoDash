@@ -196,14 +196,14 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 33.0, 32.0, 32.0),
+        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 22.0),
+              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Venue Stats',
                 style: TextStyle(
@@ -222,11 +222,11 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
               Column(
                 children: [
                   _buildStatRow('Total Sessions', _metricsData['totalSessions'].toString()),
-                  SizedBox(height: 20),
+                  SizedBox(height: 12),
                   _buildStatRow('Total Coins', _metricsData['totalCoins'].toString()),
-                  SizedBox(height: 20),
+                  SizedBox(height: 12),
                   _buildStatRow('Avg. High Score', _metricsData['avgHighScore'].toString()),
-                  SizedBox(height: 20),
+                  SizedBox(height: 12),
                   _buildStatRow('Unique Players', _metricsData['uniquePlayers'].toString()),
                 ],
               ),

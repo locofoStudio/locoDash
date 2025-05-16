@@ -192,7 +192,7 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 24.0, 32.0, 24.0),
+        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,126 +211,92 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
               ),
             ),
 
-            // 2x2 Grid layout for metrics
+            // Two-column layout for metrics
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left column (Monthly and Week)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Monthly
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Monthly Users',
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.textColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          _isLoading ? '000' : _userMetrics['monthly'].toString().padLeft(3, '0'),
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.monthlyColor,
-                            fontSize: 72.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    SizedBox(height: 36),
-                    
-                    // Week
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Week',
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.textColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          _isLoading ? '000' : _userMetrics['weekly'].toString().padLeft(3, '0'),
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.weeklyColor,
-                            fontSize: 72.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                // Left column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Monthly section
+                      _buildMetricSection(
+                        'Monthly Users',
+                        _isLoading ? '000' : _userMetrics['monthly'].toString().padLeft(3, '0'),
+                        widget.monthlyColor,
+                      ),
+                      
+                      // Weekly section
+                      _buildMetricSection(
+                        'Week',
+                        _isLoading ? '000' : _userMetrics['weekly'].toString().padLeft(3, '0'),
+                        widget.weeklyColor,
+                      ),
+                    ],
+                  ),
                 ),
                 
-                // Right column (Live and Total)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Live
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Live',
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.textColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          _isLoading ? '000' : _userMetrics['daily'].toString().padLeft(3, '0'),
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.dailyColor,
-                            fontSize: 72.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    SizedBox(height: 36),
-                    
-                    // Total
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total',
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.textColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          _isLoading ? '000' : _userMetrics['total'].toString().padLeft(3, '0'),
-                          style: TextStyle(
-                            fontFamily: 'Roboto Flex',
-                            color: widget.totalColor,
-                            fontSize: 72.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                // Right column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Live section
+                      _buildMetricSection(
+                        'Live',
+                        _isLoading ? '000' : _userMetrics['daily'].toString().padLeft(3, '0'),
+                        widget.dailyColor,
+                      ),
+                      
+                      // Total section
+                      _buildMetricSection(
+                        'Total',
+                        _isLoading ? '000' : _userMetrics['total'].toString().padLeft(3, '0'),
+                        widget.totalColor,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMetricSection(String label, String value, Color valueColor) {
+    if (_isLoading) {
+      return Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Roboto Flex',
+              color: widget.textColor,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontFamily: 'Roboto Flex',
+              color: valueColor,
+              fontSize: 48.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
