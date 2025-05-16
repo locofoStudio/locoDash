@@ -8,6 +8,7 @@ import '/custom_code/widgets/venue_stats_widget.dart';
 import '/custom_code/widgets/venue_activity_chart_widget.dart';
 import '/custom_code/widgets/venue_clients_widget.dart';
 import '/custom_code/widgets/users_list_widget.dart';
+import '/custom_code/widgets/venue_leaderboard_widget.dart';
 
 class LandingPageMobile extends StatefulWidget {
   const LandingPageMobile({Key? key, required this.venueId}) : super(key: key);
@@ -299,7 +300,7 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
       case 2: // Offers
         return Center(child: Text('Offers Content', style: TextStyle(color: Colors.white)));
       case 3: // Leaderboard
-        return Center(child: Text('Leaderboard Content', style: TextStyle(color: Colors.white)));
+        return _buildLeaderboardTab();
       default:
         return const SizedBox();
     }
@@ -356,6 +357,19 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
             height: 700,
           ),
         ],
+      ),
+    );
+  }
+
+  // Add new Leaderboard tab method
+  Widget _buildLeaderboardTab() {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      child: VenueLeaderboardWidget(
+        venueId: _selectedVenue ?? '',
+        showPreviewData: false,
+        width: double.infinity,
+        height: 700,
       ),
     );
   }
