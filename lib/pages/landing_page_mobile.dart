@@ -5,6 +5,8 @@ import '/flutter_flow/flutter_flow_util.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/custom_code/widgets/venue_coins_metrics_widget.dart';
 import '/custom_code/widgets/venue_stats_widget.dart';
+import '/custom_code/widgets/venue_activity_chart_widget.dart';
+import '/custom_code/widgets/venue_clients_widget.dart';
 
 class LandingPageMobile extends StatefulWidget {
   const LandingPageMobile({Key? key, required this.venueId}) : super(key: key);
@@ -414,6 +416,16 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
           VenueStatsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
+          ),
+          SizedBox(height: 16),
+          VenueActivityChartWidget(
+            venueId: _selectedVenue ?? '',
+            showPreviewData: true, // Use preview data for reliable display
+          ),
+          SizedBox(height: 16),
+          VenueClientsWidget(
+            venueId: _selectedVenue ?? '',
+            showPreviewData: true, // Use preview data for reliable display
           ),
         ],
       ),
