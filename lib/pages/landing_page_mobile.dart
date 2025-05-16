@@ -7,6 +7,7 @@ import '/custom_code/widgets/venue_coins_metrics_widget.dart';
 import '/custom_code/widgets/venue_stats_widget.dart';
 import '/custom_code/widgets/venue_activity_chart_widget.dart';
 import '/custom_code/widgets/venue_clients_widget.dart';
+import '/custom_code/widgets/users_list_widget.dart';
 
 class LandingPageMobile extends StatefulWidget {
   const LandingPageMobile({Key? key, required this.venueId}) : super(key: key);
@@ -40,61 +41,59 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
     });
 
     try {
-      print('Loading venues from Firestore...');
-      final venuesSnapshot = await FirebaseFirestore.instance.collection('venues').get();
+      print('Loading venues from venueProgress collection...');
       
-      print('Found ${venuesSnapshot.docs.length} venues in the collection');
-      for (var doc in venuesSnapshot.docs) {
-        print('Venue document ID: ${doc.id}');
-        print('Venue data: ${doc.data()}');
-      }
+      // Get unique venueIds from venueProgress collection
+      final venueProgressQuery = await FirebaseFirestore.instance
+          .collectionGroup('venueProgress')
+          .get();
       
-      List<String> names = [];
-      List<String> ids = [];
+      print('Found ${venueProgressQuery.docs.length} venueProgress documents');
       
-      for (var doc in venuesSnapshot.docs) {
+      // Extract unique venueIds
+      Set<String> uniqueVenueIds = {};
+      
+      for (var doc in venueProgressQuery.docs) {
         final data = doc.data();
-        final name = data['name'] as String? ?? doc.id;
-        print('Processing venue: $name (${doc.id})');
-        names.add(name);
-        ids.add(doc.id);
+        if (data.containsKey('venueId') && data['venueId'] != null) {
+          String venueId = data['venueId'] as String;
+          uniqueVenueIds.add(venueId);
+        }
       }
       
-      // Ensure we include 'Baked' and 'Demo' if they don't exist
-      if (!names.contains('Baked') && !names.contains('baked')) {
-        print('Adding default Baked venue as it was not found');
-        names.add('Baked');
-        ids.add('baked'); // using lowercase ID as convention
-      }
+      print('Found ${uniqueVenueIds.length} unique venueIds: ${uniqueVenueIds.toList()}');
       
-      if (!names.contains('Demo') && !names.contains('demo')) {
-        print('Adding default Demo venue as it was not found');
-        names.add('Demo');
-        ids.add('demo'); // using lowercase ID as convention
-      }
+      // Convert to lists for the dropdown
+      List<String> venueIds = uniqueVenueIds.toList();
+      
+      // Sort alphabetically but ensure baked and demo are at the beginning
+      venueIds.sort((a, b) {
+        if (a.toLowerCase() == 'baked') return -1;
+        if (b.toLowerCase() == 'baked') return 1;
+        if (a.toLowerCase() == 'demo') return -1;
+        if (b.toLowerCase() == 'demo') return 1;
+        return a.compareTo(b);
+      });
       
       setState(() {
-        _venueNames = names;
-        _venueIds = ids;
+        _venueIds = venueIds;
+        _venueNames = venueIds; // Using venueId as the display name
         _loadingVenues = false;
-
-        // If we have venues and no venue is selected yet, select the first one
-        if (_venueIds.isNotEmpty && (_selectedVenue == null || _selectedVenue!.isEmpty || _selectedVenue == 'preview-venue' || _selectedVenue == 'venue-123')) {
-          // Prioritize selecting 'baked' or 'Baked' venue if available
-          final bakedIndex = _venueIds.indexWhere((id) => id.toLowerCase() == 'baked');
-          if (bakedIndex >= 0) {
-            _selectedVenue = _venueIds[bakedIndex];
-          } else {
-            _selectedVenue = _venueIds.first;
-          }
-          print('Selected venue: ${_selectedVenue}');
+        
+        // Select first venue if none selected
+        if (_selectedVenue == null || _selectedVenue!.isEmpty) {
+          _selectedVenue = venueIds.first;
         }
       });
+      
+      print('Venues loaded. Current selected venue: $_selectedVenue');
+      print('Available venues: $_venueIds');
+      
     } catch (e) {
       print('Error loading venues: $e');
       setState(() {
         // Fallback to default venues if Firebase query fails
-        _venueNames = ['Baked', 'Demo'];
+        _venueNames = ['baked', 'demo'];
         _venueIds = ['baked', 'demo'];
         _selectedVenue = 'baked';
         _loadingVenues = false;
@@ -105,11 +104,9 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
   // Get venue name from venue ID
   String _getVenueName(String? venueId) {
     if (venueId == null || venueId.isEmpty) return 'Select Venue';
-    final index = _venueIds.indexOf(venueId);
-    if (index >= 0 && index < _venueNames.length) {
-      return _venueNames[index];
-    }
-    return 'Unknown Venue';
+    
+    // Capitalize the first letter of the venue id for display
+    return venueId.substring(0, 1).toUpperCase() + venueId.substring(1);
   }
 
   @override
@@ -175,167 +172,77 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
   }
 
   Widget _buildVenueDropdown() {
-    return Stack(
-      children: [
-        // The dropdown button
-        InkWell(
-          onTap: () {
-            setState(() {
-              _dropdownOpen = !_dropdownOpen;
-            });
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _loadingVenues
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : Text(
-                        _getVenueName(_selectedVenue),
-                        style: TextStyle(
-                          fontFamily: 'Roboto Flex',
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                SizedBox(width: 4),
-                Icon(
-                  _dropdownOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ],
-            ),
-          ),
-        ),
-        // The dropdown menu
-        if (_dropdownOpen)
-          Positioned(
-            top: 38,
-            right: 0,
-            child: Container(
-              width: 200,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: _buildDropdownMenuItems(),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  List<Widget> _buildDropdownMenuItems() {
-    // If there are no venues yet, show loading
-    if (_venueNames.isEmpty) {
-      return [
-        Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        )
-      ];
-    }
+    // Define a simple list of venue options
+    final List<String> venueOptions = ['baked', 'demo'];
     
-    List<Widget> items = [];
-    
-    // Add Baked option at the top if it exists
-    final bakedIndex = _venueNames.indexWhere(
-        (name) => name.toLowerCase() == 'baked');
-    if (bakedIndex >= 0) {
-      items.add(_buildDropdownItem('Baked', () {
-        setState(() {
-          _selectedVenue = _venueIds[bakedIndex];
-          _dropdownOpen = false;
-        });
-      }));
-    }
-    
-    // Add Demo option at the top if it exists
-    final demoIndex = _venueNames.indexWhere(
-        (name) => name.toLowerCase() == 'demo');
-    if (demoIndex >= 0) {
-      items.add(_buildDropdownItem('Demo', () {
-        setState(() {
-          _selectedVenue = _venueIds[demoIndex];
-          _dropdownOpen = false;
-        });
-      }));
-    }
-    
-    // Add divider if we added special venues
-    if (bakedIndex >= 0 || demoIndex >= 0) {
-      items.add(Divider(color: Colors.white.withOpacity(0.1), height: 1));
-    }
-    
-    // Add all other venues
-    for (int i = 0; i < _venueNames.length; i++) {
-      final name = _venueNames[i];
-      // Skip Baked and Demo since they're already at the top
-      if (name.toLowerCase() == 'baked' || name.toLowerCase() == 'demo') {
-        continue;
-      }
-      
-      items.add(_buildDropdownItem(name, () {
-        setState(() {
-          _selectedVenue = _venueIds[i];
-          _dropdownOpen = false;
-        });
-      }));
-    }
-    
-    return items;
-  }
-
-  Widget _buildDropdownItem(String text, VoidCallback onTap) {
-    final isSelected = _getVenueName(_selectedVenue) == text;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            isSelected
-                ? Icon(Icons.circle, size: 8, color: Colors.white)
-                : SizedBox(width: 8),
-            SizedBox(width: 8),
-            Text(
-              text,
-              style: TextStyle(
-                fontFamily: 'Roboto Flex',
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      height: 30,
+      padding: EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
       ),
+      child: _loadingVenues 
+          ? Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            )
+          : DropdownButton<String>(
+              value: _selectedVenue ?? venueOptions.first,
+              icon: Icon(Icons.arrow_drop_down, color: Colors.white),
+              iconSize: 24,
+              elevation: 16,
+              dropdownColor: Color(0xFF1F2029),
+              underline: Container(height: 0),  // Remove underline
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontFamily: 'Roboto Flex',
+              ),
+              hint: Text(
+                'Venue',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'Roboto Flex',
+                ),
+              ),
+              onChanged: (String? newValue) {
+                print("Selected venue: $newValue");
+                setState(() {
+                  _selectedVenue = newValue;
+                  // Show brief loading animation
+                  _loadingVenues = true;
+                });
+                
+                // Reset loading state after a short delay to show feedback
+                Future.delayed(Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    setState(() {
+                      _loadingVenues = false;
+                    });
+                  }
+                });
+              },
+              items: venueOptions.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Text(
+                      value.substring(0, 1).toUpperCase() + value.substring(1),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
     );
   }
 
@@ -435,9 +342,20 @@ class _LandingPageMobileState extends State<LandingPageMobile> {
   Widget _buildUsersTab() {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 16),
-      child: VenueUserMetricsWidget(
-        venueId: _selectedVenue ?? '',
-        showPreviewData: false,
+      child: Column(
+        children: [
+          VenueUserMetricsWidget(
+            venueId: _selectedVenue ?? '',
+            showPreviewData: false,
+          ),
+          SizedBox(height: 16),
+          UsersListWidget(
+            venueId: _selectedVenue ?? '',
+            showPreviewData: false,
+            width: double.infinity,
+            height: 700,
+          ),
+        ],
       ),
     );
   }

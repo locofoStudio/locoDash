@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'pages/landing_page_mobile.dart';
 import 'backend/backend.dart';
 import 'backend/firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,43 +34,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Loco Dashboard',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1F2029)),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
         fontFamily: 'Roboto Flex',
-        scaffoldBackgroundColor: const Color(0xFF1F2029),
       ),
       debugShowCheckedModeBanner: false,
       home: Builder(
-        builder: (context) {
-          // Initialize with a simple error handler
-          try {
-            return const LandingPageMobile(venueId: 'baked');
-          } catch (e) {
-            print('Error initializing LandingPageMobile: $e');
-            return Scaffold(
-              backgroundColor: const Color(0xFF1F2029),
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Loco Dashboard',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'Roboto Flex',
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    CircularProgressIndicator(),
-                  ],
-                ),
-              ),
-            );
-          }
-        }
-      ),
+          builder: (context) {
+            // Initialize with a simple error handler
+            return const LandingPageMobile(venueId: 'demo');
+          },
+        ),
       routes: {
         'UsersPageMobile': (context) => const Scaffold(
           backgroundColor: Color(0xFF1F2029),
