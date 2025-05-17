@@ -108,20 +108,17 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
     });
 
     try {
-      print('Loading metrics data for venue: ${widget.venueId}');
+      print('Loading coin metrics data for venue: ${widget.venueId}');
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day);
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final startOfMonth = DateTime(now.year, now.month, 1);
 
       // Query venueProgress directly for this venue
-      print('Querying venueProgress collection for venueId: ${widget.venueId}');
       final venueProgressQuery = await FirebaseFirestore.instance
           .collectionGroup('venueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .get();
-
-      print('Found ${venueProgressQuery.docs.length} documents with venueId: ${widget.venueId}');
 
       int dailyCoins = 0;
       int weeklyCoins = 0;
@@ -130,8 +127,6 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
 
       // First, get all unique user IDs and check their verification status
       Map<String, bool> verifiedUsers = {};
-
-      // First pass: Get all verified users
       for (var doc in venueProgressQuery.docs) {
         final userId = doc.reference.parent.parent!.id;
         if (!verifiedUsers.containsKey(userId)) {
@@ -151,29 +146,15 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         }
       }
 
-      print('Found ${verifiedUsers.entries.where((e) => e.value).length} verified users');
-
-      // Second pass: Process coins only for verified users
+      // Now sum coins for verified users only
       for (var doc in venueProgressQuery.docs) {
-        final userId = doc.reference.parent.parent!.id;
-
-        // Skip if user is not verified
-        if (!verifiedUsers.containsKey(userId) || !verifiedUsers[userId]!) continue;
-
         final data = doc.data();
+        final userId = doc.reference.parent.parent!.id;
+        if (!verifiedUsers.containsKey(userId) || !verifiedUsers[userId]!) continue;
         final createdTime = (data['created_time'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
-
-        // Get coin value only from the coin field in venueProgress
-        final coinValue = data['coin'] as int? ?? 0;
+        int coinValue = data['coin'] as int? ?? 0;
         if (coinValue <= 0) continue;
-
-        print('Processing coins: User $userId, VenueId: ${widget.venueId}, Coins: $coinValue, Date: $createdTime');
-        
-        // Add conditional breakpoint - will break only if coin value is above 100
-        assert(coinValue <= 100, 'High coin value detected: $coinValue for user $userId');
-
-        // Add coins to appropriate periods
         if (createdTime.isAfter(startOfDay)) {
           dailyCoins += coinValue;
         }
@@ -183,7 +164,6 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         if (createdTime.isAfter(startOfMonth)) {
           monthlyCoins += coinValue;
         }
-        // Add to total coins
         totalCoins += coinValue;
       }
 
@@ -201,13 +181,18 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
           _isLoading = false;
         });
       }
-
-      print(
-          'Updated coin metrics for ${widget.venueId} - Monthly: $monthlyCoins, Weekly: $weeklyCoins, Daily: $dailyCoins, TotalSpent: $totalSpent');
+      print('Updated coin metrics for ${widget.venueId} - Monthly: $monthlyCoins, Weekly: $weeklyCoins, Daily: $dailyCoins, Total Coins: $totalCoins, TotalSpent: $totalSpent');
     } catch (e) {
       print('Error loading metrics data: $e');
       if (mounted) {
         setState(() {
+          _metricsData = {
+            'monthly': 0,
+            'weekly': 0,
+            'daily': 0,
+            'totalSpent': 0.0,
+            'totalCoins': 0,
+          };
           _isLoading = false;
         });
       }
@@ -216,6 +201,9 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Debug check to ensure venueId isn't null
+    print('VenueCoinsMetricsWidget build called with venueId: "${widget.venueId}"');
+    
     return Container(
       width: double.infinity, // Full width
       constraints: BoxConstraints(
