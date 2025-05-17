@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'index.dart'; // Imports other custom widgets
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../utils/responsive_helper.dart';
 
 class VenueCoinsMetricsWidget extends StatefulWidget {
   const VenueCoinsMetricsWidget({
@@ -168,6 +169,9 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         if (coinValue <= 0) continue;
 
         print('Processing coins: User $userId, VenueId: ${widget.venueId}, Coins: $coinValue, Date: $createdTime');
+        
+        // Add conditional breakpoint - will break only if coin value is above 100
+        assert(coinValue <= 100, 'High coin value detected: $coinValue for user $userId');
 
         // Add coins to appropriate periods
         if (createdTime.isAfter(startOfDay)) {
@@ -217,7 +221,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
       constraints: BoxConstraints(
         minWidth: 300, // Minimum width
       ),
-      margin: EdgeInsets.symmetric(horizontal: 12), // 12px padding on the sides
+      margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
       decoration: BoxDecoration(
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),
@@ -319,6 +323,10 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
       );
     }
 
+    // Determine font size based on screen width
+    final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
+    final valueFontSize = isLargeScreen ? 36.0 : 48.0;
+
     return Padding(
       padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
       child: Column(
@@ -337,7 +345,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
             style: TextStyle(
               fontFamily: 'Roboto Flex',
               color: valueColor,
-              fontSize: 48.0,
+              fontSize: valueFontSize,
               fontWeight: FontWeight.bold,
             ),
           ),

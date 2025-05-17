@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'pages/landing_page_mobile.dart';
+import 'pages/landing_page.dart';
 import 'backend/backend.dart';
 import 'backend/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
       home: Builder(
           builder: (context) {
             // Initialize with a simple error handler
-            return const LandingPageMobile(venueId: 'demo');
+            return const LandingPage(venueId: 'demo');
           },
         ),
       routes: {

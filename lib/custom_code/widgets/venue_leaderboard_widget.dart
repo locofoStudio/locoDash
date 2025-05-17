@@ -40,9 +40,9 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: widget.width,
+      width: double.infinity,
       height: widget.height,
-      margin: EdgeInsets.symmetric(horizontal: 12),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),

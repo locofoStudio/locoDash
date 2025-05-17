@@ -6,6 +6,7 @@ import '/custom_code/widgets/index.dart'; // Imports other custom widgets
 import '/custom_code/actions/index.dart'; // Imports custom actions
 import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
@@ -62,27 +63,27 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
       setState(() {
         _clients = [
           {
-            'display_name': 'Arlene McCoy',
-            'email': 'Customer@email.com',
-            'sessions': 12,
+            'display_name': 'Daniel Garcia',
+            'email': 'daniel.garcia@example.com',
+            'sessions': 20,
             'photo_url': null,
           },
           {
-            'display_name': 'Eleanor Pena',
-            'email': 'eleanor@example.com',
-            'sessions': 8,
+            'display_name': 'Jacob Martin',
+            'email': 'jacob.martin@example.com',
+            'sessions': 19,
             'photo_url': null,
           },
           {
-            'display_name': 'Jacob Jones',
-            'email': 'jacob@example.com',
-            'sessions': 15,
+            'display_name': 'Michael Brown',
+            'email': 'michael.brown@example.com',
+            'sessions': 18,
             'photo_url': null,
           },
           {
-            'display_name': 'Cameron Hall',
-            'email': 'cameron@example.com',
-            'sessions': 6,
+            'display_name': 'James Taylor',
+            'email': 'james.taylor@example.com',
+            'sessions': 18,
             'photo_url': null,
           },
         ];
@@ -233,27 +234,27 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
           // Use preview data as fallback
           _clients = [
             {
-              'display_name': 'Arlene McCoy',
-              'email': 'Customer@email.com',
-              'sessions': 12,
+              'display_name': 'Daniel Garcia',
+              'email': 'daniel.garcia@example.com',
+              'sessions': 20,
               'photo_url': null,
             },
             {
-              'display_name': 'Eleanor Pena',
-              'email': 'eleanor@example.com',
-              'sessions': 8,
+              'display_name': 'Jacob Martin',
+              'email': 'jacob.martin@example.com',
+              'sessions': 19,
               'photo_url': null,
             },
             {
-              'display_name': 'Jacob Jones',
-              'email': 'jacob@example.com',
-              'sessions': 15,
+              'display_name': 'Michael Brown',
+              'email': 'michael.brown@example.com',
+              'sessions': 18,
               'photo_url': null,
             },
             {
-              'display_name': 'Cameron Hall',
-              'email': 'cameron@example.com',
-              'sessions': 6,
+              'display_name': 'James Taylor',
+              'email': 'james.taylor@example.com',
+              'sessions': 18,
               'photo_url': null,
             },
           ];
@@ -271,7 +272,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
         minWidth: 300, // Minimum width
         minHeight: 300, // Minimum height
       ),
-      margin: EdgeInsets.symmetric(horizontal: 12), // 12px padding on the sides
+      margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
       decoration: BoxDecoration(
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),
@@ -423,10 +424,15 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
                 ),
                 child: TextButton(
                   onPressed: () {
+                    // Debug trace for navigation flow
+                    debugPrint('Load More button pressed, venueId: ${widget.venueId}');
+                    
                     // Navigate to users tab using the callback
                     if (widget.onNavigateToUsersTab != null) {
+                      debugPrint('Navigation callback found, executing...');
                       widget.onNavigateToUsersTab!();
                     } else {
+                      debugPrint('WARNING: Navigation callback not provided!');
                       // Fallback message if callback not provided
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Users tab navigation not available')),

@@ -363,9 +363,9 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
     return Container(
       width: double.infinity, // Full width
       constraints: BoxConstraints(
-        minWidth: 300, // Minimum width
+        minHeight: 200, // Minimum height for the chart
       ),
-      margin: EdgeInsets.symmetric(horizontal: 12), // 12px padding on the sides
+      margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
       decoration: BoxDecoration(
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),

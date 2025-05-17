@@ -216,7 +216,7 @@ class _LandingPageState extends State<LandingPage> {
   // Desktop layout for overview tab - grid layout matching the screenshot
   Widget _buildDesktopOverviewTab() {
     return Padding(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(14),
       child: Column(
         children: [
           // Top row: Users, Activity, Venue Stats
@@ -231,7 +231,7 @@ class _LandingPageState extends State<LandingPage> {
                   showPreviewData: false,
                 ),
               ),
-              SizedBox(width: 16),
+              SizedBox(width: 14),
               // Activity widget
               Expanded(
                 flex: 2,
@@ -240,7 +240,7 @@ class _LandingPageState extends State<LandingPage> {
                   showPreviewData: true,
                 ),
               ),
-              SizedBox(width: 16),
+              SizedBox(width: 14),
               // Venue Stats widget
               Expanded(
                 flex: 1,
@@ -251,7 +251,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 14),
           // Bottom row: Coins distributed, Clients, Top Rewards
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,13 +264,13 @@ class _LandingPageState extends State<LandingPage> {
                   showPreviewData: false,
                 ),
               ),
-              SizedBox(width: 16),
+              SizedBox(width: 14),
               // Clients widget
               Expanded(
                 flex: 1,
                 child: VenueClientsWidget(
                   venueId: _selectedVenue ?? '',
-                  showPreviewData: false,
+                  showPreviewData: true, // Use preview data to match the design
                   onNavigateToUsersTab: () {
                     setState(() {
                       _selectedIndex = 1; // Navigate to Users tab
@@ -278,7 +278,7 @@ class _LandingPageState extends State<LandingPage> {
                   },
                 ),
               ),
-              SizedBox(width: 16),
+              SizedBox(width: 14),
               // Top Rewards widget (use the existing rewards widget)
               Expanded(
                 flex: 1,
@@ -294,7 +294,7 @@ class _LandingPageState extends State<LandingPage> {
   // Desktop layout for users tab
   Widget _buildDesktopUsersTab() {
     return Padding(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(14),
       child: Column(
         children: [
           // Top row: User metrics
@@ -309,7 +309,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 14),
           // Bottom row: Users list
           UsersListWidget(
             venueId: _selectedVenue ?? '',
@@ -325,7 +325,7 @@ class _LandingPageState extends State<LandingPage> {
   // Desktop layout for leaderboard tab
   Widget _buildDesktopLeaderboardTab() {
     return Padding(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(14),
       child: VenueLeaderboardWidget(
         venueId: _selectedVenue ?? '',
         showPreviewData: false,
@@ -473,29 +473,29 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildOverviewTab() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16), // Remove horizontal padding to allow widgets to handle their own padding
+      padding: EdgeInsets.all(14), // Apply consistent 14px padding on all sides
       child: Column(
         children: [
           VenueUserMetricsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 14),
           VenueCoinsMetricsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 14),
           VenueStatsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 14),
           VenueActivityChartWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: true, // Use preview data for reliable display
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 14),
           VenueClientsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false, // Use real data from Firebase
@@ -512,14 +512,14 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildUsersTab() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.all(14),
       child: Column(
         children: [
           VenueUserMetricsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 14),
           UsersListWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
@@ -534,7 +534,7 @@ class _LandingPageState extends State<LandingPage> {
   // Add new Leaderboard tab method
   Widget _buildLeaderboardTab() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.all(14),
       child: VenueLeaderboardWidget(
         venueId: _selectedVenue ?? '',
         showPreviewData: false,
@@ -605,6 +605,7 @@ class _LandingPageState extends State<LandingPage> {
         color: const Color(0xFF363740),
         borderRadius: BorderRadius.circular(31.0),
       ),
+      margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
       padding: EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,6 +783,10 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Widget _buildMetricRow(String leftLabel, String leftValue, Color leftValueColor, String rightLabel, String rightValue, Color rightValueColor) {
+    // Determine font size based on screen width
+    final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
+    final valueFontSize = isLargeScreen ? 36.0 : 48.0;
+    
     return Row(
       children: [
         Expanded(
@@ -801,7 +806,7 @@ class _LandingPageState extends State<LandingPage> {
                 style: TextStyle(
                   fontFamily: 'Roboto Flex',
                   color: leftValueColor,
-                  fontSize: 48,
+                  fontSize: valueFontSize,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -826,7 +831,7 @@ class _LandingPageState extends State<LandingPage> {
                   style: TextStyle(
                     fontFamily: 'Roboto Flex',
                     color: rightValueColor,
-                    fontSize: 48,
+                    fontSize: valueFontSize,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

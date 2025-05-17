@@ -13,6 +13,8 @@ import 'index.dart'; // Imports other custom widgets
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:developer' as developer;
+import '../../utils/responsive_helper.dart';
 
 class VenueUserMetricsWidget extends StatefulWidget {
   const VenueUserMetricsWidget({
@@ -186,7 +188,7 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       constraints: BoxConstraints(
         minWidth: 300, // Minimum width
       ),
-      margin: EdgeInsets.symmetric(horizontal: 12), // 12px padding on the sides
+      margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
       decoration: BoxDecoration(
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),
@@ -274,6 +276,10 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       );
     }
 
+    // Determine font size based on screen width
+    final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
+    final valueFontSize = isLargeScreen ? 36.0 : 48.0;
+
     return Padding(
       padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
       child: Column(
@@ -292,7 +298,7 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
             style: TextStyle(
               fontFamily: 'Roboto Flex',
               color: valueColor,
-              fontSize: 48.0,
+              fontSize: valueFontSize,
               fontWeight: FontWeight.bold,
             ),
           ),
