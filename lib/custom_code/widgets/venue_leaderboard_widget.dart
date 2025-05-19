@@ -16,14 +16,14 @@ import 'dart:math' as math;
 
 class VenueLeaderboardWidget extends StatefulWidget {
   const VenueLeaderboardWidget({
-    Key? key,
+    super.key,
     required this.venueId,
     this.width = 368.0,
     this.height = 600.0,
     this.backgroundColor = const Color(0xFF363740),
     this.textColor = const Color(0xFFFCFDFF),
     this.showPreviewData = false,
-  }) : super(key: key);
+  });
 
   final String venueId;
   final double width;
@@ -392,97 +392,40 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
     try {
       print('Fetching leaderboard for venue: ${widget.venueId}');
 
-      // Query users who have played in this venue through venueProgress
+      // Query userVenueProgress for this venue
       final usersQuery = await FirebaseFirestore.instance
-          .collectionGroup('venueProgress')
+          .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
-      print(
-          'Found ${usersQuery.docs.length} venue progress entries for venue ${widget.venueId}');
+      print('Found ${usersQuery.docs.length} userVenueProgress entries for venue ${widget.venueId}');
 
-      Map<String, Map<String, dynamic>> userStats = {};
-
-      // Collect stats for each user
-      for (var doc in usersQuery.docs) {
-        final userId = doc.reference.parent.parent!.id;
-        final data = doc.data();
-        
-        print('Processing leaderboard data for user: $userId, data: ${data.toString()}');
-
-        if (!userStats.containsKey(userId)) {
-          userStats[userId] = {
-            'sessions': 0,
-            'coins': 0,
-            'high_score': 0,
-            'redeemed': 0,
-            'created_time': null,
-          };
-        }
-
-        // Track the earliest created_time
-        final currentCreatedTime = data['created_time'] as Timestamp?;
-        if (currentCreatedTime != null) {
-          final existingCreatedTime =
-              userStats[userId]!['created_time'] as Timestamp?;
-          if (existingCreatedTime == null ||
-              currentCreatedTime.compareTo(existingCreatedTime) < 0) {
-            userStats[userId]!['created_time'] = currentCreatedTime;
-          }
-        }
-
-        userStats[userId]!['sessions'] =
-            (userStats[userId]!['sessions'] as int) +
-                (data['sessions'] as int? ?? 0);
-        userStats[userId]!['coins'] = (userStats[userId]!['coins'] as int) +
-            (data['coins'] as int? ?? data['coin'] as int? ?? 0);
-            
-        // Try different possible field names for high score
-        int highScore = 0;
-        if (data.containsKey('highScore')) {
-          highScore = data['highScore'] as int? ?? 0;
-        } else if (data.containsKey('high_score')) {
-          highScore = data['high_score'] as int? ?? 0;
-        } else if (data.containsKey('score')) {
-          highScore = data['score'] as int? ?? 0;
-        }
-            
-        userStats[userId]!['high_score'] = math.max(
-            (userStats[userId]!['high_score'] as int),
-            highScore);
-            
-        userStats[userId]!['redeemed'] =
-            (userStats[userId]!['redeemed'] as int) +
-                (data['redeemed'] as int? ?? 0);
-      }
-
-      // Fetch user details
       List<Map<String, dynamic>> leaderboardUsers = [];
-      for (var entry in userStats.entries) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(entry.key)
-            .get();
-
-        if (userDoc.exists) {
-          final userData = userDoc.data()!;
-          leaderboardUsers.add({
-            'display_name': userData['display_name'] ??
-                userData['displayName'] ??
-                'Unknown',
-            'email': userData['email'] ?? '',
-            'photo_url': userData['photo_url'] ?? userData['photoUrl'],
-            ...entry.value,
-          });
+      for (var doc in usersQuery.docs) {
+        final data = doc.data();
+        int coins = 0;
+        if (data['coins'] != null && data['coins'] is int) {
+          coins += data['coins'] as int;
         }
+        if (data['coin'] != null && data['coin'] is int) {
+          coins += data['coin'] as int;
+        }
+        leaderboardUsers.add({
+          'display_name': data['display_name'] ?? data['displayName'] ?? 'Unknown',
+          'email': data['email'] ?? '',
+          'photo_url': data['photo_url'] ?? data['photoUrl'],
+          'sessions': data['sessions'] ?? 0,
+          'coins': coins,
+          'high_score': data['highScore'] ?? 0,
+          'redeemed': data['coinSpent'] ?? 0,
+          'created_time': data['created_time'],
+        });
       }
 
-      print('Leaderboard users before sorting: ${leaderboardUsers.map((u) => '${u['display_name']}: ${u['high_score']}').join(', ')}');
-      
       // Sort by high_score in descending order
       leaderboardUsers.sort(
           (a, b) => (b['high_score'] as int).compareTo(a['high_score'] as int));
-          
+
       print('Leaderboard users after sorting: ${leaderboardUsers.map((u) => '${u['display_name']}: ${u['high_score']}').join(', ')}');
 
       return leaderboardUsers;
