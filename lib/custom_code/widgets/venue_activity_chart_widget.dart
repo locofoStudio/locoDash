@@ -1,17 +1,13 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/custom_code/widgets/index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+// Imports other custom widgets
+// Imports custom actions
+// Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
+// Imports other custom widgets
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class VenueActivityChartWidget extends StatefulWidget {
@@ -25,6 +21,7 @@ class VenueActivityChartWidget extends StatefulWidget {
     this.sessionsColor = const Color(0xFFC5C352),
     this.visitsColor = const Color(0xFF6FA6A0),
     this.emptyBarColor = const Color(0xFFBDBDBD),
+    this.totalCoinsColor = const Color(0xFFF24738),
     this.showPreviewData = false,
   });
 
@@ -36,6 +33,7 @@ class VenueActivityChartWidget extends StatefulWidget {
   final Color sessionsColor;
   final Color visitsColor;
   final Color emptyBarColor;
+  final Color totalCoinsColor;
   final bool showPreviewData;
 
   @override
@@ -62,6 +60,10 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
     'Fri': {},
     'Sat': {},
     'Sun': {}
+  };
+  
+  Map<String, int> _anonymousByDay = {
+    'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
   };
   
   bool _isLoading = true;
@@ -184,7 +186,7 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       print('Days of week in period: $dayCountInPeriod');
 
       final query = await FirebaseFirestore.instance
-          .collectionGroup('venueProgress')
+          .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .where('created_time',
               isGreaterThanOrEqualTo: Timestamp.fromDate(thirtyDaysAgo))
@@ -205,12 +207,12 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       Map<String, DateTime> firstUserAppearance = {};
 
       // First, get all unique user IDs and check their verification status
-      Map<String, bool> verifiedUsers = {};
+      Map<String, bool> isSignedUpUser = {};
 
       // First pass: gather all verified users
       for (var doc in query.docs) {
-        final userId = doc.reference.parent.parent!.id;
-        if (!verifiedUsers.containsKey(userId)) {
+        final userId = doc.id;
+        if (!isSignedUpUser.containsKey(userId)) {
           final userDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(userId)
@@ -218,16 +220,16 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
 
           if (userDoc.exists) {
             final userData = userDoc.data();
-            verifiedUsers[userId] = (userData != null &&
+            isSignedUpUser[userId] = (userData != null &&
                 userData['email'] != null &&
                 (userData['email'] as String).isNotEmpty);
           } else {
-            verifiedUsers[userId] = false;
+            isSignedUpUser[userId] = false;
           }
         }
       }
 
-      print('Found ${verifiedUsers.entries.where((e) => e.value).length} verified users');
+      print('Found ${isSignedUpUser.entries.where((e) => e.value).length} verified users');
       
       // Debug counters to track sessions
       int docsWithSessions = 0;
@@ -244,10 +246,10 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       // Second pass: Process activity data for verified users
       for (var doc in sortedDocs) {
         final data = doc.data();
-        final userId = doc.reference.parent.parent!.id;
+        final userId = doc.id;
 
         // Skip if user is not verified
-        if (!verifiedUsers.containsKey(userId) || !verifiedUsers[userId]!) continue;
+        if (!isSignedUpUser.containsKey(userId) || !isSignedUpUser[userId]!) continue;
 
         final createdTime = (data['created_time'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
@@ -280,7 +282,8 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
 
       // Calculate averages
       Map<String, int> avgSessionsByDay = {};
-      Map<String, Set<String>> avgNewUsersByDay = {};
+      Map<String, int> avgNewUsersByDay = {};
+      Map<String, int> avgAnonymousUsersByDay = {};
       
       for (final day in totalSessionsByDay.keys) {
         final dayCount = dayCountInPeriod[day] ?? 1; // Avoid division by zero
@@ -290,7 +293,8 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
         avgSessionsByDay[day] = avgSessions.round();
         
         // Keep the new users set as is - we're already counting unique new users per day
-        avgNewUsersByDay[day] = newUsersByDay[day] ?? {};
+        avgNewUsersByDay[day] = newUsersByDay[day]?.length ?? 0;
+        avgAnonymousUsersByDay[day] = 0; // Assuming anonymous users are not available in the query
       }
 
       // Ensure we have at least some data to display
@@ -311,7 +315,8 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       if (mounted) {
         setState(() {
           _sessionsByDay = avgSessionsByDay;
-          _usersByDay = avgNewUsersByDay;
+          _usersByDay = newUsersByDay;
+          _anonymousByDay = avgAnonymousUsersByDay;
           _isLoading = false;
         });
       }
@@ -319,7 +324,7 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       print('Found $docsWithSessions documents with sessions data, total sessions: $totalSessionsFound');
       print('Raw session totals by day: $totalSessionsByDay');
       print('Activity data loaded - Avg Sessions by day: $avgSessionsByDay');
-      print('Activity data loaded - New Users by day: ${avgNewUsersByDay.map((k, v) => MapEntry(k, v.length))}');
+      print('Activity data loaded - New Users by day: ${avgNewUsersByDay.map((k, v) => MapEntry(k, v))}');
     } catch (e) {
       print('Error or using sample data: $e');
       if (mounted) {
@@ -341,44 +346,38 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
     // Force non-zero values for display (remove when real data is available)
     Map<String, int> displaySessions = {};
     Map<String, int> displayUsers = {};
+    Map<String, int> displayAnonymous = {};
     
     for (final day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
-      // Ensure values are at least 1 for display purposes
-      displaySessions[day] = (_sessionsByDay[day] ?? 0) > 0 ? 
-                            (_sessionsByDay[day] ?? 1) : 
-                            _getFallbackValue(day, true);
-      
-      displayUsers[day] = (userCounts[day] ?? 0) > 0 ? 
-                          (userCounts[day] ?? 1) : 
-                          _getFallbackValue(day, false);
+      // Use the actual value, allow 0 for bar height
+      displaySessions[day] = _sessionsByDay[day] ?? 0;
+      displayUsers[day] = userCounts[day] ?? 0;
+      displayAnonymous[day] = _anonymousByDay[day] ?? 0;
     }
     
     // Find maximums for scaling (using display values)
     final maxSessions = displaySessions.values.fold<int>(1, (prev, e) => e > prev ? e : prev);
     final maxUsers = displayUsers.values.fold<int>(1, (prev, e) => e > prev ? e : prev);
-    
-    // Order of days
+    final maxAnonymous = displayAnonymous.values.fold<int>(1, (prev, e) => e > prev ? e : prev);
+    // Each metric uses its own max for height scaling
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
     return Container(
-      width: double.infinity, // Full width
-      constraints: BoxConstraints(
-        minHeight: 200, // Minimum height for the chart
-      ),
-      margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 200),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
+        padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Activity',
                 style: TextStyle(
@@ -389,37 +388,28 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
                 ),
               ),
             ),
-
-            // Chart content
             _isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : Column(
                     children: [
-                      // Chart
                       SizedBox(
-                        height: 220, // Increased height for labels
+                        height: 220,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: List.generate(days.length * 2 - 1, (index) {
-                            // If index is odd, return a spacer
                             if (index % 2 == 1) {
-                              return Expanded(
-                                flex: 1, // Smaller flex for spacers
-                                child: SizedBox(), // Empty spacer
-                              );
+                              return const Expanded(flex: 1, child: SizedBox());
                             }
-                            
-                            // Otherwise return a day column
                             final dayIndex = index ~/ 2;
                             final day = days[dayIndex];
                             final sessionValue = displaySessions[day] ?? 1;
                             final sessionPercent = maxSessions > 0 ? sessionValue / maxSessions : 0.5;
-                            
                             final userValue = displayUsers[day] ?? 1;
                             final userPercent = maxUsers > 0 ? userValue / maxUsers : 0.5;
-                            
+                            final anonymousValue = displayAnonymous[day] ?? 1;
+                            final anonymousPercent = maxAnonymous > 0 ? anonymousValue / maxAnonymous : 0.5;
                             return Expanded(
-                              flex: 5, // Give day columns more weight than spacers
+                              flex: 5,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -433,9 +423,8 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
                                           child: Column(
                                             mainAxisAlignment: MainAxisAlignment.end,
                                             children: [
-                                              // Value label above bar
                                               Padding(
-                                                padding: EdgeInsets.only(bottom: 4),
+                                                padding: const EdgeInsets.only(bottom: 4),
                                                 child: Text(
                                                   '$sessionValue',
                                                   style: TextStyle(
@@ -446,10 +435,9 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
                                                   ),
                                                 ),
                                               ),
-                                              // Bar
                                               Expanded(
                                                 child: Padding(
-                                                  padding: EdgeInsets.symmetric(horizontal: 1),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 1),
                                                   child: Stack(
                                                     alignment: Alignment.bottomCenter,
                                                     children: [
@@ -476,19 +464,15 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
                                             ],
                                           ),
                                         ),
-                                        
-                                        // Space between bars in the same day
-                                        SizedBox(width: 2),
-                                        
+                                        const SizedBox(width: 2),
                                         // Visits bar
                                         Expanded(
                                           flex: 4,
                                           child: Column(
                                             mainAxisAlignment: MainAxisAlignment.end,
                                             children: [
-                                              // Value label above bar
                                               Padding(
-                                                padding: EdgeInsets.only(bottom: 4),
+                                                padding: const EdgeInsets.only(bottom: 4),
                                                 child: Text(
                                                   '$userValue',
                                                   style: TextStyle(
@@ -499,10 +483,9 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
                                                   ),
                                                 ),
                                               ),
-                                              // Bar
                                               Expanded(
                                                 child: Padding(
-                                                  padding: EdgeInsets.symmetric(horizontal: 1),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 1),
                                                   child: Stack(
                                                     alignment: Alignment.bottomCenter,
                                                     children: [
@@ -529,10 +512,58 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
                                             ],
                                           ),
                                         ),
+                                        const SizedBox(width: 2),
+                                        // Anonymous bar
+                                        Expanded(
+                                          flex: 4,
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 4),
+                                                child: Text(
+                                                  '$anonymousValue',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Roboto Flex',
+                                                    color: widget.totalCoinsColor,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 1),
+                                                  child: Stack(
+                                                    alignment: Alignment.bottomCenter,
+                                                    children: [
+                                                      Container(
+                                                        height: double.infinity,
+                                                        decoration: BoxDecoration(
+                                                          color: widget.emptyBarColor,
+                                                          borderRadius: BorderRadius.circular(12),
+                                                        ),
+                                                      ),
+                                                      FractionallySizedBox(
+                                                        heightFactor: anonymousPercent,
+                                                        child: Container(
+                                                          decoration: BoxDecoration(
+                                                            color: widget.totalCoinsColor,
+                                                            borderRadius: BorderRadius.circular(12),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   Text(
                                     day,
                                     style: TextStyle(
@@ -547,15 +578,15 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
                           }).toList(),
                         ),
                       ),
-                      
-                      // Legend
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _buildLegendItem('Avg Sessions', widget.sessionsColor),
-                          SizedBox(width: 24),
+                          const SizedBox(width: 24),
                           _buildLegendItem('New Users', widget.visitsColor),
+                          const SizedBox(width: 24),
+                          _buildLegendItem('Anonymous Users', widget.totalCoinsColor),
                         ],
                       ),
                     ],
