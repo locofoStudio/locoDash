@@ -10,9 +10,10 @@ import '/custom_code/widgets/venue_clients_widget.dart';
 import '/custom_code/widgets/users_list_widget.dart';
 import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
+import '/custom_code/widgets/qr_code_footer_bar.dart';
 
 class LandingPage extends StatefulWidget {
-  const LandingPage({Key? key, required this.venueId}) : super(key: key);
+  const LandingPage({super.key, required this.venueId});
 
   final String venueId;
 
@@ -27,7 +28,7 @@ class _LandingPageState extends State<LandingPage> {
   List<String> _venueNames = [];
   List<String> _venueIds = [];
   bool _loadingVenues = true;
-  bool _dropdownOpen = false;
+  final bool _dropdownOpen = false;
 
   @override
   void initState() {
@@ -126,42 +127,25 @@ class _LandingPageState extends State<LandingPage> {
     
     return Scaffold(
       key: scaffoldKey,
-      backgroundColor: const Color(0xFF1F2029),
+      backgroundColor: const Color(0xFF242529),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2029),
+        backgroundColor: const Color(0xFF242529),
         automaticallyImplyLeading: false,
         title: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 15,
+            Text(
+              'Loco Dashboard',
+              style: TextStyle(
+                fontFamily: 'Roboto Flex',
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome',
-                  style: TextStyle(
-                    fontFamily: 'Roboto Flex',
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-                Text(
-                  'Locofo Studio',
-                  style: TextStyle(
-                    fontFamily: 'Roboto Flex',
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            Spacer(),
-            _buildVenueDropdown(),
+            // Venue selection dropdown
+            _buildVenueSelector(),
           ],
         ),
         centerTitle: false,
@@ -188,6 +172,7 @@ class _LandingPageState extends State<LandingPage> {
           ],
         ),
       ),
+      bottomNavigationBar: const QrCodeFooterBar(),
     );
   }
 
@@ -352,7 +337,7 @@ class _LandingPageState extends State<LandingPage> {
     }
   }
 
-  Widget _buildVenueDropdown() {
+  Widget _buildVenueSelector() {
     // Define a simple list of venue options
     final List<String> venueOptions = ['baked', 'demo'];
     
