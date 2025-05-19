@@ -1,17 +1,13 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/custom_code/widgets/index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+// Imports other custom widgets
+// Imports custom actions
+// Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
+// Imports other custom widgets
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../utils/responsive_helper.dart';
 
 class VenueCoinsMetricsWidget extends StatefulWidget {
@@ -111,12 +107,12 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
       print('Loading coin metrics data for venue: ${widget.venueId}');
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day);
-      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-      final startOfMonth = DateTime(now.year, now.month, 1);
+      final startOfWeek = now.subtract(Duration(days: 7));
+      final startOfMonth = now.subtract(Duration(days: 30));
 
-      // Query venueProgress directly for this venue
-      final venueProgressQuery = await FirebaseFirestore.instance
-          .collectionGroup('venueProgress')
+      // Query userVenueProgress for this venue
+      final userVenueProgressQuery = await FirebaseFirestore.instance
+          .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
@@ -125,46 +121,29 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
       int monthlyCoins = 0;
       int totalCoins = 0;
 
-      // First, get all unique user IDs and check their verification status
-      Map<String, bool> verifiedUsers = {};
-      for (var doc in venueProgressQuery.docs) {
-        final userId = doc.reference.parent.parent!.id;
-        if (!verifiedUsers.containsKey(userId)) {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .get();
-
-          if (userDoc.exists) {
-            final userData = userDoc.data();
-            verifiedUsers[userId] = (userData != null &&
-                userData['email'] != null &&
-                (userData['email'] as String).isNotEmpty);
-          } else {
-            verifiedUsers[userId] = false;
-          }
-        }
-      }
-
-      // Now sum coins for verified users only
-      for (var doc in venueProgressQuery.docs) {
+      for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
-        final userId = doc.reference.parent.parent!.id;
-        if (!verifiedUsers.containsKey(userId) || !verifiedUsers[userId]!) continue;
+        // Double-check venueId matches
+        if (data['venueId'] != widget.venueId) continue;
         final createdTime = (data['created_time'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
-        int coinValue = data['coin'] as int? ?? 0;
-        if (coinValue <= 0) continue;
-        if (createdTime.isAfter(startOfDay)) {
-          dailyCoins += coinValue;
+        int coins = 0;
+        if (data['coins'] != null && data['coins'] is int) {
+          coins += data['coins'] as int;
+        }
+        if (data['coin'] != null && data['coin'] is int) {
+          coins += data['coin'] as int;
+        }
+        totalCoins += coins;
+        if (createdTime.isAfter(startOfMonth)) {
+          monthlyCoins += coins;
         }
         if (createdTime.isAfter(startOfWeek)) {
-          weeklyCoins += coinValue;
+          weeklyCoins += coins;
         }
-        if (createdTime.isAfter(startOfMonth)) {
-          monthlyCoins += coinValue;
+        if (createdTime.isAfter(startOfDay)) {
+          dailyCoins += coins;
         }
-        totalCoins += coinValue;
       }
 
       final totalSpent = totalCoins * widget.coinValue;
@@ -181,7 +160,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
           _isLoading = false;
         });
       }
-      print('Updated coin metrics for ${widget.venueId} - Monthly: $monthlyCoins, Weekly: $weeklyCoins, Daily: $dailyCoins, Total Coins: $totalCoins, TotalSpent: $totalSpent');
+      print('Updated coin metrics for ${widget.venueId} (userVenueProgress) - Monthly: $monthlyCoins, Weekly: $weeklyCoins, Daily: $dailyCoins, Total Coins: $totalCoins, TotalSpent: $totalSpent');
     } catch (e) {
       print('Error loading metrics data: $e');
       if (mounted) {
@@ -257,9 +236,9 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
                         widget.weeklyColor,
                       ),
                       
-                      // Daily section
+                      // Today section (was Daily)
                       _buildMetricSection(
-                        'Daily',
+                        'Today',
                         _metricsData['daily'].toString(),
                         widget.dailyColor,
                       ),

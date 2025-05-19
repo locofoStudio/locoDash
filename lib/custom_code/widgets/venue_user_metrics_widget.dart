@@ -1,19 +1,14 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/custom_code/widgets/index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+// Imports other custom widgets
+// Imports custom actions
+// Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
+// Imports other custom widgets
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'dart:developer' as developer;
 import '../../utils/responsive_helper.dart';
 
 class VenueUserMetricsWidget extends StatefulWidget {
@@ -105,53 +100,34 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       print('Loading user metrics for venue: ${widget.venueId}');
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day);
-      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-      final startOfMonth = DateTime(now.year, now.month, 1);
+      final startOfWeek = now.subtract(Duration(days: 7));
+      final startOfMonth = now.subtract(Duration(days: 30));
 
-      // Query venueProgress subcollections for this venue
-      // Using collectionGroup to search across all user documents
-      final venueProgressQuery = await FirebaseFirestore.instance
-          .collectionGroup('venueProgress')
+      // Query userVenueProgress for this venue
+      final userVenueProgressQuery = await FirebaseFirestore.instance
+          .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
-      print('Found ${venueProgressQuery.docs.length} total documents');
+      print('Found ${userVenueProgressQuery.docs.length} userVenueProgress documents');
 
-      // Create sets to store unique users per period
       Set<String> monthlyUsers = {};
       Set<String> weeklyUsers = {};
       Set<String> dailyUsers = {};
       Set<String> totalUsers = {};
 
-      // Process all matching documents
-      for (var doc in venueProgressQuery.docs) {
-        // Get the userId from the parent collection (which should be a user document)
-        final userId = doc.reference.parent.parent!.id;
+      for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
-        
-        // Skip documents without created_time
+        final userId = doc.id;
         final createdTime = (data['created_time'] as Timestamp?)?.toDate();
-        if (createdTime == null) {
-          print('Missing created_time for document ${doc.id} of userId $userId');
-          continue;
-        }
-
-        print('Processing user $userId with venueId ${widget.venueId} - created time: $createdTime');
-        
-        // Add to total users collection (regardless of date)
+        if (createdTime == null) continue;
         totalUsers.add(userId);
-        
-        // Add to monthly users collection
         if (createdTime.isAfter(startOfMonth)) {
           monthlyUsers.add(userId);
         }
-
-        // Add to weekly users collection
         if (createdTime.isAfter(startOfWeek)) {
           weeklyUsers.add(userId);
         }
-
-        // Add to daily users collection
         if (createdTime.isAfter(startOfDay)) {
           dailyUsers.add(userId);
         }
@@ -170,7 +146,7 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       }
 
       print(
-          'Updated user metrics - Monthly: ${monthlyUsers.length}, Weekly: ${weeklyUsers.length}, Daily: ${dailyUsers.length}, Total: ${totalUsers.length}');
+          'Updated user metrics (userVenueProgress) - Monthly: ${monthlyUsers.length}, Weekly: ${weeklyUsers.length}, Daily: ${dailyUsers.length}, Total: ${totalUsers.length}');
     } catch (e) {
       print('Error loading user metrics: $e');
       if (mounted) {
@@ -244,9 +220,9 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Live section
+                      // Today section (was Live)
                       _buildMetricSection(
-                        'Live',
+                        'Today',
                         _isLoading ? '000' : _userMetrics['daily'].toString().padLeft(3, '0'),
                         widget.dailyColor,
                       ),
