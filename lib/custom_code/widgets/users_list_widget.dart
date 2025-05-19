@@ -287,7 +287,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
 
   Future<List<Map<String, dynamic>>> _getVenueClients() async {
     try {
-      print('Fetching clients for venue: ${widget.venueId}');
+      print('Fetching clients for venue: [33m${widget.venueId}[0m');
 
       // Query userVenueProgress for this venue
       final usersQuery = await FirebaseFirestore.instance
@@ -295,33 +295,52 @@ class _UsersListWidgetState extends State<UsersListWidget> {
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
-      print('Found ${usersQuery.docs.length} userVenueProgress entries for venue ${widget.venueId}');
+      print('Found [36m${usersQuery.docs.length}[0m userVenueProgress entries for venue ${widget.venueId}');
 
-      List<Map<String, dynamic>> clients = [];
+      // Aggregate by userId
+      Map<String, Map<String, dynamic>> userStats = {};
       for (var doc in usersQuery.docs) {
         final data = doc.data();
+        final userId = doc.id;
+        // Only include users with a non-empty email
+        final email = data['email'] ?? '';
+        if (email == null || (email is String && email.trim().isEmpty)) {
+          continue;
+        }
+        if (!userStats.containsKey(userId)) {
+          userStats[userId] = {
+            'display_name': data['display_name'] ?? data['displayName'] ?? 'Unknown',
+            'email': email,
+            'photo_url': data['photo_url'] ?? data['photoUrl'],
+            'sessions': 0,
+            'coins': 0,
+            'high_score': 0,
+            'redeemed': 0,
+            'created_time': data['created_time'],
+          };
+        }
+        // Sum sessions
+        userStats[userId]!['sessions'] = (userStats[userId]!['sessions'] as int) + (data['sessions'] is int ? data['sessions'] as int : (data['sessions'] is num ? (data['sessions'] as num).toInt() : 0));
+        // Sum coins (coin + coins)
         int coins = 0;
-        if (data['coins'] != null && data['coins'] is int) {
-          coins += data['coins'] as int;
+        if (data['coins'] != null && data['coins'] is int) coins += data['coins'] as int;
+        if (data['coin'] != null && data['coin'] is int) coins += data['coin'] as int;
+        userStats[userId]!['coins'] = (userStats[userId]!['coins'] as int) + coins;
+        // Max high score
+        int highScore = 0;
+        if (data['highScore'] != null && data['highScore'] is int) highScore = data['highScore'] as int;
+        else if (data['high_score'] != null && data['high_score'] is int) highScore = data['high_score'] as int;
+        if (highScore > (userStats[userId]!['high_score'] as int)) {
+          userStats[userId]!['high_score'] = highScore;
         }
-        if (data['coin'] != null && data['coin'] is int) {
-          coins += data['coin'] as int;
-        }
-        clients.add({
-          'display_name': data['display_name'] ?? data['displayName'] ?? 'Unknown',
-          'email': data['email'] ?? '',
-          'photo_url': data['photo_url'] ?? data['photoUrl'],
-          'sessions': data['sessions'] ?? 0,
-          'coins': coins,
-          'high_score': data['highScore'] ?? 0,
-          'redeemed': data['coinSpent'] ?? 0,
-          'created_time': data['created_time'],
-        });
+        // Sum redeemed
+        userStats[userId]!['redeemed'] = (userStats[userId]!['redeemed'] as int) + (data['redeemed'] is int ? data['redeemed'] as int : (data['redeemed'] is num ? (data['redeemed'] as num).toInt() : 0));
       }
 
+      // Convert to list
+      List<Map<String, dynamic>> clients = userStats.values.toList();
       // Sort by sessions in descending order
       clients.sort((a, b) => (b['sessions'] as int).compareTo(a['sessions'] as int));
-
       return clients;
     } catch (e) {
       print('Error getting venue clients: $e');

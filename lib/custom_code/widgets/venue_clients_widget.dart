@@ -1,18 +1,13 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/custom_code/widgets/index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+// Imports other custom widgets
+// Imports custom actions
+// Imports custom functions
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
+// Imports other custom widgets
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class VenueClientsWidget extends StatefulWidget {
   const VenueClientsWidget({
@@ -107,117 +102,54 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
     try {
       print('Fetching clients for venue: ${widget.venueId}');
 
-      // Query venueProgress directly for this venue
+      // Query userVenueProgress for this venue
       final venueProgressQuery = await FirebaseFirestore.instance
-          .collectionGroup('venueProgress')
+          .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
-      print('Found ${venueProgressQuery.docs.length} venue progress entries');
+      print('Found [36m${venueProgressQuery.docs.length}[0m userVenueProgress entries');
 
-      // Create a map to store aggregated user data
+      // Aggregate by userId and only include users with a non-empty email
       Map<String, Map<String, dynamic>> userStats = {};
-
-      // First, get all unique user IDs and check their verification status
-      Map<String, bool> verifiedUsers = {};
-      for (var doc in venueProgressQuery.docs) {
-        final userId = doc.reference.parent.parent!.id;
-        if (!verifiedUsers.containsKey(userId)) {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .get();
-
-          if (userDoc.exists) {
-            final userData = userDoc.data();
-            verifiedUsers[userId] = (userData != null &&
-                userData['email'] != null &&
-                (userData['email'] as String).isNotEmpty);
-          } else {
-            verifiedUsers[userId] = false;
-          }
-        }
-      }
-
-      print('Found ${verifiedUsers.entries.where((e) => e.value).length} verified users');
-
-      // Process all venue progress entries for verified users only
       for (var doc in venueProgressQuery.docs) {
         final data = doc.data();
-        final userId = doc.reference.parent.parent!.id;
-
-        // Skip if user is not verified
-        if (!verifiedUsers.containsKey(userId) || !verifiedUsers[userId]!) continue;
-
-        // Initialize user stats if not exists
+        final userId = doc.id;
+        final email = data['email'] ?? '';
+        if (email == null || (email is String && email.trim().isEmpty)) {
+          continue;
+        }
         if (!userStats.containsKey(userId)) {
           userStats[userId] = {
+            'display_name': data['display_name'] ?? data['displayName'] ?? 'Unknown',
+            'email': email,
+            'photo_url': data['photo_url'] ?? data['photoUrl'],
             'sessions': 0,
             'coins': 0,
             'high_score': 0,
-            'created_time': null,
+            'created_time': data['created_time'],
           };
         }
-
-        // Update stats
-        final sessions = data['sessions'] as int? ?? 0;
-        final coins = data['coin'] as int? ?? 0;
-
-        if (sessions > 0) {
-          userStats[userId]!['sessions'] =
-              (userStats[userId]!['sessions'] as int) + sessions;
-        }
-
-        if (coins > 0) {
-          userStats[userId]!['coins'] =
-              (userStats[userId]!['coins'] as int) + coins;
-        }
-
-        // Track high scores
-        final highScore = data['highScore'] as int? ?? 0;
+        // Sum sessions
+        userStats[userId]!['sessions'] = (userStats[userId]!['sessions'] as int) + (data['sessions'] is int ? data['sessions'] as int : (data['sessions'] is num ? (data['sessions'] as num).toInt() : 0));
+        // Sum coins (coin + coins)
+        int coins = 0;
+        if (data['coins'] != null && data['coins'] is int) coins += data['coins'] as int;
+        if (data['coin'] != null && data['coin'] is int) coins += data['coin'] as int;
+        userStats[userId]!['coins'] = (userStats[userId]!['coins'] as int) + coins;
+        // Max high score
+        int highScore = 0;
+        if (data['highScore'] != null && data['highScore'] is int) highScore = data['highScore'] as int;
+        else if (data['high_score'] != null && data['high_score'] is int) highScore = data['high_score'] as int;
         if (highScore > (userStats[userId]!['high_score'] as int)) {
           userStats[userId]!['high_score'] = highScore;
         }
-
-        // Track earliest created_time
-        final createdTime = data['created_time'] as Timestamp?;
-        if (createdTime != null) {
-          final existingTime = userStats[userId]!['created_time'] as Timestamp?;
-          if (existingTime == null || createdTime.compareTo(existingTime) < 0) {
-            userStats[userId]!['created_time'] = createdTime;
-          }
-        }
       }
 
-      // Fetch user details for verified users
-      List<Map<String, dynamic>> clients = [];
-      for (var userId in userStats.keys) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .get();
-
-        if (userDoc.exists) {
-          final userData = userDoc.data();
-          if (userData != null) {
-            clients.add({
-              'display_name': userData['display_name'] ??
-                  userData['displayName'] ??
-                  'Unknown',
-              'email': userData['email'] ?? '',
-              'photo_url': userData['photo_url'] ?? userData['photoUrl'],
-              'sessions': userStats[userId]!['sessions'],
-              'coins': userStats[userId]!['coins'],
-              'high_score': userStats[userId]!['high_score'],
-              'created_time': userStats[userId]!['created_time'],
-            });
-          }
-        }
-      }
-
-      // Sort clients by sessions in descending order
-      clients.sort(
-          (a, b) => (b['sessions'] as int).compareTo(a['sessions'] as int));
+      // Convert to list
+      List<Map<String, dynamic>> clients = userStats.values.toList();
+      // Sort by sessions in descending order
+      clients.sort((a, b) => (b['sessions'] as int).compareTo(a['sessions'] as int));
 
       print('Processed ${clients.length} verified clients with their session data');
       
