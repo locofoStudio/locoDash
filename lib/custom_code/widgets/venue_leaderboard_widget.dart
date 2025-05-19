@@ -390,7 +390,7 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
 
   Future<List<Map<String, dynamic>>> _getVenueLeaderboard() async {
     try {
-      print('Fetching leaderboard for venue: ${widget.venueId}');
+      print('Fetching leaderboard for venue: [33m${widget.venueId}[0m');
 
       // Query userVenueProgress for this venue
       final usersQuery = await FirebaseFirestore.instance
@@ -398,36 +398,51 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
-      print('Found ${usersQuery.docs.length} userVenueProgress entries for venue ${widget.venueId}');
+      print('Found [36m${usersQuery.docs.length}[0m userVenueProgress entries for venue ${widget.venueId}');
 
-      List<Map<String, dynamic>> leaderboardUsers = [];
+      // Aggregate by userId and only include users with a non-empty email
+      Map<String, Map<String, dynamic>> userStats = {};
       for (var doc in usersQuery.docs) {
         final data = doc.data();
+        final userId = doc.id;
+        final email = data['email'] ?? '';
+        if (email == null || (email is String && email.trim().isEmpty)) {
+          continue;
+        }
+        if (!userStats.containsKey(userId)) {
+          userStats[userId] = {
+            'display_name': data['display_name'] ?? data['displayName'] ?? 'Unknown',
+            'email': email,
+            'photo_url': data['photo_url'] ?? data['photoUrl'],
+            'sessions': 0,
+            'coins': 0,
+            'high_score': 0,
+            'redeemed': 0,
+            'created_time': data['created_time'],
+          };
+        }
+        // Sum sessions
+        userStats[userId]!['sessions'] = (userStats[userId]!['sessions'] as int) + (data['sessions'] is int ? data['sessions'] as int : (data['sessions'] is num ? (data['sessions'] as num).toInt() : 0));
+        // Sum coins (coin + coins)
         int coins = 0;
-        if (data['coins'] != null && data['coins'] is int) {
-          coins += data['coins'] as int;
+        if (data['coins'] != null && data['coins'] is int) coins += data['coins'] as int;
+        if (data['coin'] != null && data['coin'] is int) coins += data['coin'] as int;
+        userStats[userId]!['coins'] = (userStats[userId]!['coins'] as int) + coins;
+        // Max high score
+        int highScore = 0;
+        if (data['highScore'] != null && data['highScore'] is int) highScore = data['highScore'] as int;
+        else if (data['high_score'] != null && data['high_score'] is int) highScore = data['high_score'] as int;
+        if (highScore > (userStats[userId]!['high_score'] as int)) {
+          userStats[userId]!['high_score'] = highScore;
         }
-        if (data['coin'] != null && data['coin'] is int) {
-          coins += data['coin'] as int;
-        }
-        leaderboardUsers.add({
-          'display_name': data['display_name'] ?? data['displayName'] ?? 'Unknown',
-          'email': data['email'] ?? '',
-          'photo_url': data['photo_url'] ?? data['photoUrl'],
-          'sessions': data['sessions'] ?? 0,
-          'coins': coins,
-          'high_score': data['highScore'] ?? 0,
-          'redeemed': data['coinSpent'] ?? 0,
-          'created_time': data['created_time'],
-        });
+        // Sum redeemed
+        userStats[userId]!['redeemed'] = (userStats[userId]!['redeemed'] as int) + (data['redeemed'] is int ? data['redeemed'] as int : (data['redeemed'] is num ? (data['redeemed'] as num).toInt() : 0));
       }
 
+      // Convert to list
+      List<Map<String, dynamic>> leaderboardUsers = userStats.values.toList();
       // Sort by high_score in descending order
-      leaderboardUsers.sort(
-          (a, b) => (b['high_score'] as int).compareTo(a['high_score'] as int));
-
-      print('Leaderboard users after sorting: ${leaderboardUsers.map((u) => '${u['display_name']}: ${u['high_score']}').join(', ')}');
-
+      leaderboardUsers.sort((a, b) => (b['high_score'] as int).compareTo(a['high_score'] as int));
       return leaderboardUsers;
     } catch (e) {
       print('Error getting venue leaderboard: $e');
