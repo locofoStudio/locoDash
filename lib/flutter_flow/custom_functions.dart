@@ -1,6 +1,5 @@
 // Custom functions
 
-import 'dart:math' as math;
 
 class CustomFunctions {
   static int getUniqueUsersCount(List<String> userIds) {

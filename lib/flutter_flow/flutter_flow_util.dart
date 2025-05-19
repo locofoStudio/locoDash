@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 // Utility functions for FlutterFlow generated code
 class FFAppState {

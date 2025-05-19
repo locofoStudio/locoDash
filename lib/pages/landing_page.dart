@@ -172,7 +172,9 @@ class _LandingPageState extends State<LandingPage> {
           ],
         ),
       ),
-      bottomNavigationBar: const QrCodeFooterBar(),
+      bottomNavigationBar: QrCodeFooterBar(
+        venueId: 'baked', // Replace with your actual venue ID
+      ),
     );
   }
 
@@ -205,71 +207,75 @@ class _LandingPageState extends State<LandingPage> {
       child: Column(
         children: [
           // Top row: Users, Activity, Venue Stats
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Users widget
-              Expanded(
-                flex: 1,
-                child: VenueUserMetricsWidget(
-                  venueId: _selectedVenue ?? '',
-                  showPreviewData: false,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Users widget
+                Expanded(
+                  flex: 1,
+                  child: VenueUserMetricsWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
                 ),
-              ),
-              SizedBox(width: 14),
-              // Activity widget
-              Expanded(
-                flex: 2,
-                child: VenueActivityChartWidget(
-                  venueId: _selectedVenue ?? '',
-                  showPreviewData: true,
+                SizedBox(width: 14),
+                // Activity widget
+                Expanded(
+                  flex: 2,
+                  child: VenueActivityChartWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: true,
+                  ),
                 ),
-              ),
-              SizedBox(width: 14),
-              // Venue Stats widget
-              Expanded(
-                flex: 1,
-                child: VenueStatsWidget(
-                  venueId: _selectedVenue ?? '',
-                  showPreviewData: false,
+                SizedBox(width: 14),
+                // Venue Stats widget
+                Expanded(
+                  flex: 1,
+                  child: VenueStatsWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           SizedBox(height: 14),
           // Bottom row: Coins distributed, Clients, Top Rewards
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Coins widget
-              Expanded(
-                flex: 1,
-                child: VenueCoinsMetricsWidget(
-                  venueId: _selectedVenue ?? '',
-                  showPreviewData: false,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Coins widget
+                Expanded(
+                  flex: 1,
+                  child: VenueCoinsMetricsWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
                 ),
-              ),
-              SizedBox(width: 14),
-              // Clients widget
-              Expanded(
-                flex: 1,
-                child: VenueClientsWidget(
-                  venueId: _selectedVenue ?? '',
-                  showPreviewData: true, // Use preview data to match the design
-                  onNavigateToUsersTab: () {
-                    setState(() {
-                      _selectedIndex = 1; // Navigate to Users tab
-                    });
-                  },
+                SizedBox(width: 14),
+                // Clients widget
+                Expanded(
+                  flex: 1,
+                  child: VenueClientsWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: true, // Use preview data to match the design
+                    onNavigateToUsersTab: () {
+                      setState(() {
+                        _selectedIndex = 1; // Navigate to Users tab
+                      });
+                    },
+                  ),
                 ),
-              ),
-              SizedBox(width: 14),
-              // Top Rewards widget (use the existing rewards widget)
-              Expanded(
-                flex: 1,
-                child: _buildTopRewardsWidget(),
-              ),
-            ],
+                SizedBox(width: 14),
+                // Top Rewards widget (use the existing rewards widget)
+                Expanded(
+                  flex: 1,
+                  child: _buildTopRewardsWidget(),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -19,40 +19,21 @@ class DefaultFirebaseOptions {
     if (kIsWeb) {
       return web;
     }
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return android;
-      case TargetPlatform.iOS:
-        return ios;
-      case TargetPlatform.macOS:
-        return macos;
-      case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      default:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
-        );
-    }
+    throw UnsupportedError(
+      'DefaultFirebaseOptions are not supported for this platform.',
+    );
   }
 
   // REPLACE THESE VALUES with your actual Firebase configuration
   // From Firebase Console > Project settings > Your apps > SDK setup and configuration
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCx-9fLyQld-UGv4tFmptS372y_zs6N03I',
-    appId: '1:352659986366:web:b7e3a2cf9f5bdb82d9aad2',
-    messagingSenderId: '352659986366',
-    projectId: 'loco-game-ul9tw4',
-    authDomain: 'loco-game-ul9tw4.firebaseapp.com',
-    storageBucket: 'loco-game-ul9tw4.appspot.com',
-    measurementId: 'G-measurement-id', // Replace with actual measurement ID if needed
+    apiKey: 'AIzaSyDTgpaJ1UMaKd1TxMhunRsOlieN8mWpjM4',
+    authDomain: 'locotag.firebaseapp.com',
+    projectId: 'locotag',
+    storageBucket: 'locotag.firebasestorage.app',
+    messagingSenderId: '783647689390',
+    appId: '1:783647689390:web:1b45930c96bc4beb863b3f',
+    measurementId: 'G-MRF3817G7M',
   );
 
   static const FirebaseOptions android = FirebaseOptions(

@@ -94,60 +94,39 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
     });
 
     try {
-      print('Fetching venue stats for: ${widget.venueId}');
+      print('Fetching venue stats for: [33m${widget.venueId}[0m');
 
-      // Query venueProgress directly for this venue
-      final venueProgressQuery = await FirebaseFirestore.instance
-          .collectionGroup('venueProgress')
+      // Query userVenueProgress for this venue
+      final userVenueProgressQuery = await FirebaseFirestore.instance
+          .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
-      print('Found ${venueProgressQuery.docs.length} venue progress entries');
+      print('Found [36m${userVenueProgressQuery.docs.length}[0m userVenueProgress entries');
 
       int totalSessions = 0;
       int totalCoins = 0;
       int totalHighScore = 0;
       int highScoreCount = 0;
       Set<String> uniqueUserIds = {};
-      Map<String, bool> verifiedUsers = {};
 
-      // First, get all unique user IDs and check their verification status
-      for (var doc in venueProgressQuery.docs) {
-        final userId = doc.reference.parent.parent!.id;
-        if (!verifiedUsers.containsKey(userId)) {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .get();
-
-          if (userDoc.exists) {
-            final userData = userDoc.data();
-            verifiedUsers[userId] = (userData != null &&
-                userData['email'] != null &&
-                (userData['email'] as String).isNotEmpty);
-          } else {
-            verifiedUsers[userId] = false;
-          }
-        }
-      }
-
-      print('Found ${verifiedUsers.entries.where((e) => e.value).length} verified users');
-
-      // Process all venue progress entries for verified users only
-      for (var doc in venueProgressQuery.docs) {
+      for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
-        final userId = doc.reference.parent.parent!.id;
-
-        // Skip if user is not verified
-        if (!verifiedUsers.containsKey(userId) || !verifiedUsers[userId]!) continue;
-
+        final userId = doc.id;
         uniqueUserIds.add(userId);
 
         // Sum sessions from sessions field
         totalSessions += data['sessions'] as int? ?? 0;
 
-        // Get coins only from the coin field in venueProgress
-        totalCoins += data['coin'] as int? ?? 0;
+        // Get coins from both coin and coins fields
+        int coins = 0;
+        if (data['coins'] != null && data['coins'] is int) {
+          coins += data['coins'] as int;
+        }
+        if (data['coin'] != null && data['coin'] is int) {
+          coins += data['coin'] as int;
+        }
+        totalCoins += coins;
 
         // Track high scores
         final highScore = data['highScore'] as int? ?? 0;
@@ -173,7 +152,7 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
       }
 
       print(
-          'VenueStats for ${widget.venueId} (verified users only): Sessions=${totalSessions}, Coins=${totalCoins}, AvgScore=${avgHighScore}, Players=${uniqueUserIds.length}');
+          'VenueStats for ${widget.venueId}: Sessions=$totalSessions, Coins=$totalCoins, AvgScore=$avgHighScore, Players=${uniqueUserIds.length}');
     } catch (e) {
       print('Error getting venue stats: $e');
       if (mounted) {
