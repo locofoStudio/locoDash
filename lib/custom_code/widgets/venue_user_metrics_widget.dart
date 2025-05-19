@@ -183,7 +183,7 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
                 style: TextStyle(
                   fontFamily: 'Roboto Flex',
                   color: widget.textColor,
-                  fontSize: 32.0,
+                  fontSize: 24.0,
                   fontWeight: FontWeight.bold,
                 ),
               ),
