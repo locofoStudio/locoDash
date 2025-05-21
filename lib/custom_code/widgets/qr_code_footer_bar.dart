@@ -53,7 +53,7 @@ class QrCodeFooterBar extends StatelessWidget {
                       topRight: Radius.circular(9),
                     ),
                   ),
-                  child: Center(
+                  child: const Center(
                     child: SizedBox(
                       width: 40,
                       height: 40,
