@@ -8,7 +8,9 @@ import '/custom_code/widgets/venue_clients_widget.dart';
 import '/custom_code/widgets/users_list_widget.dart';
 import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
-import '/custom_code/widgets/qr_code_footer_bar.dart';
+import 'dart:html' as html;
+import 'dart:convert';
+import '/custom_code/widgets/user_scan_result_bottom_sheet.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -33,6 +35,19 @@ class _LandingPageState extends State<LandingPage> {
     super.initState();
     _selectedVenue = widget.venueId;
     _loadVenues();
+  }
+
+  Future<void> _debugPrintUserVenueProgress(String venueId) async {
+    final query = await FirebaseFirestore.instance
+        .collection('userVenueProgress')
+        .where('venueId', isEqualTo: venueId)
+        .get();
+    print('--- All userVenueProgress for venueId=$venueId ---');
+    for (var doc in query.docs) {
+      print('DocId: ${doc.id}');
+      print('Data: ${doc.data()}');
+      print('---');
+    }
   }
 
   // Load venues from Firestore
@@ -146,6 +161,14 @@ class _LandingPageState extends State<LandingPage> {
             _buildVenueSelector(),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamed(context, 'QRScanner');
+            },
+          ),
+        ],
         centerTitle: false,
         elevation: 0,
       ),
@@ -169,9 +192,6 @@ class _LandingPageState extends State<LandingPage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: const QrCodeFooterBar(
-        venueId: 'baked', // Replace with your actual venue ID
       ),
     );
   }
