@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/custom_code/widgets/venue_user_metrics_widget.dart';
-import '/flutter_flow/flutter_flow_util.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/custom_code/widgets/venue_coins_metrics_widget.dart';
 import '/custom_code/widgets/venue_stats_widget.dart';
@@ -12,7 +10,7 @@ import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
 
 class LandingPage extends StatefulWidget {
-  const LandingPage({Key? key, required this.venueId}) : super(key: key);
+  const LandingPage({super.key, required this.venueId});
 
   final String venueId;
 
@@ -27,7 +25,7 @@ class _LandingPageState extends State<LandingPage> {
   List<String> _venueNames = [];
   List<String> _venueIds = [];
   bool _loadingVenues = true;
-  bool _dropdownOpen = false;
+  final bool _dropdownOpen = false;
 
   @override
   void initState() {
@@ -132,12 +130,12 @@ class _LandingPageState extends State<LandingPage> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               backgroundColor: Colors.white,
               radius: 15,
             ),
-            SizedBox(width: 8),
-            Column(
+            const SizedBox(width: 8),
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -160,7 +158,7 @@ class _LandingPageState extends State<LandingPage> {
                 ),
               ],
             ),
-            Spacer(),
+            const Spacer(),
             _buildVenueDropdown(),
           ],
         ),
@@ -173,7 +171,7 @@ class _LandingPageState extends State<LandingPage> {
           children: [
             // Tabs row
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: _buildTabRow(),
             ),
             
@@ -205,7 +203,7 @@ class _LandingPageState extends State<LandingPage> {
       case 1: // Users
         return _buildDesktopUsersTab();
       case 2: // Offers
-        return Center(child: Text('Offers Content', style: TextStyle(color: Colors.white)));
+        return const Center(child: Text('Offers Content', style: TextStyle(color: Colors.white)));
       case 3: // Leaderboard
         return _buildDesktopLeaderboardTab();
       default:
@@ -216,7 +214,7 @@ class _LandingPageState extends State<LandingPage> {
   // Desktop layout for overview tab - grid layout matching the screenshot
   Widget _buildDesktopOverviewTab() {
     return Padding(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           // Top row: Users, Activity, Venue Stats
@@ -231,7 +229,7 @@ class _LandingPageState extends State<LandingPage> {
                   showPreviewData: false,
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               // Activity widget
               Expanded(
                 flex: 2,
@@ -240,7 +238,7 @@ class _LandingPageState extends State<LandingPage> {
                   showPreviewData: true,
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               // Venue Stats widget
               Expanded(
                 flex: 1,
@@ -251,7 +249,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           // Bottom row: Coins distributed, Clients, Top Rewards
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,7 +262,7 @@ class _LandingPageState extends State<LandingPage> {
                   showPreviewData: false,
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               // Clients widget
               Expanded(
                 flex: 1,
@@ -278,7 +276,7 @@ class _LandingPageState extends State<LandingPage> {
                   },
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               // Top Rewards widget (use the existing rewards widget)
               Expanded(
                 flex: 1,
@@ -294,7 +292,7 @@ class _LandingPageState extends State<LandingPage> {
   // Desktop layout for users tab
   Widget _buildDesktopUsersTab() {
     return Padding(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           // Top row: User metrics
@@ -309,7 +307,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           // Bottom row: Users list
           UsersListWidget(
             venueId: _selectedVenue ?? '',
@@ -325,7 +323,7 @@ class _LandingPageState extends State<LandingPage> {
   // Desktop layout for leaderboard tab
   Widget _buildDesktopLeaderboardTab() {
     return Padding(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: VenueLeaderboardWidget(
         venueId: _selectedVenue ?? '',
         showPreviewData: false,
@@ -344,7 +342,7 @@ class _LandingPageState extends State<LandingPage> {
       case 1: // Users
         return _buildUsersTab();
       case 2: // Offers
-        return Center(child: Text('Offers Content', style: TextStyle(color: Colors.white)));
+        return const Center(child: Text('Offers Content', style: TextStyle(color: Colors.white)));
       case 3: // Leaderboard
         return _buildLeaderboardTab();
       default:
@@ -358,14 +356,14 @@ class _LandingPageState extends State<LandingPage> {
     
     return Container(
       height: 30,
-      padding: EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.5)),
       ),
       child: _loadingVenues 
-          ? Center(
+          ? const Center(
               child: SizedBox(
                 height: 20,
                 width: 20,
@@ -377,17 +375,17 @@ class _LandingPageState extends State<LandingPage> {
             )
           : DropdownButton<String>(
               value: _selectedVenue ?? venueOptions.first,
-              icon: Icon(Icons.arrow_drop_down, color: Colors.white),
+              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
               iconSize: 24,
               elevation: 16,
-              dropdownColor: Color(0xFF1F2029),
+              dropdownColor: const Color(0xFF1F2029),
               underline: Container(height: 0),  // Remove underline
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontFamily: 'Roboto Flex',
               ),
-              hint: Text(
+              hint: const Text(
                 'Venue',
                 style: TextStyle(
                   color: Colors.white,
@@ -404,7 +402,7 @@ class _LandingPageState extends State<LandingPage> {
                 });
                 
                 // Reset loading state after a short delay to show feedback
-                Future.delayed(Duration(milliseconds: 300), () {
+                Future.delayed(const Duration(milliseconds: 300), () {
                   if (mounted) {
                     setState(() {
                       _loadingVenues = false;
@@ -416,7 +414,7 @@ class _LandingPageState extends State<LandingPage> {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Text(
                       value.substring(0, 1).toUpperCase() + value.substring(1),
                     ),
@@ -431,11 +429,11 @@ class _LandingPageState extends State<LandingPage> {
     return Row(
       children: [
         _buildTabButton('Overview', 0),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         _buildTabButton('Users', 1),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         _buildTabButton('Offers', 2),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         _buildTabButton('Leaderboard', 3),
       ],
     );
@@ -450,7 +448,7 @@ class _LandingPageState extends State<LandingPage> {
         });
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -473,29 +471,29 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildOverviewTab() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16), // Remove horizontal padding to allow widgets to handle their own padding
+      padding: const EdgeInsets.symmetric(vertical: 16), // Remove horizontal padding to allow widgets to handle their own padding
       child: Column(
         children: [
           VenueUserMetricsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           VenueCoinsMetricsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           VenueStatsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           VenueActivityChartWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: true, // Use preview data for reliable display
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           VenueClientsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false, // Use real data from Firebase
@@ -512,14 +510,14 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildUsersTab() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         children: [
           VenueUserMetricsWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           UsersListWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
@@ -534,7 +532,7 @@ class _LandingPageState extends State<LandingPage> {
   // Add new Leaderboard tab method
   Widget _buildLeaderboardTab() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: VenueLeaderboardWidget(
         venueId: _selectedVenue ?? '',
         showPreviewData: false,
@@ -552,11 +550,11 @@ class _LandingPageState extends State<LandingPage> {
         color: const Color(0xFF363740),
         borderRadius: BorderRadius.circular(31.0),
       ),
-      padding: EdgeInsets.all(32),
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Rewards collected',
             style: TextStyle(
               fontFamily: 'Roboto Flex',
@@ -565,7 +563,7 @@ class _LandingPageState extends State<LandingPage> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 22),
+          const SizedBox(height: 22),
           _buildMetricRow(
             'Monthly',
             '568',
@@ -574,7 +572,7 @@ class _LandingPageState extends State<LandingPage> {
             r'$0.25',
             Colors.white,
           ),
-          SizedBox(height: 7),
+          const SizedBox(height: 7),
           _buildMetricRow(
             'Weekly',
             '154',
@@ -583,7 +581,7 @@ class _LandingPageState extends State<LandingPage> {
             r'$500',
             const Color(0xFFF87C58),
           ),
-          SizedBox(height: 7),
+          const SizedBox(height: 7),
           _buildMetricRow(
             'Today',
             '008',
@@ -605,11 +603,11 @@ class _LandingPageState extends State<LandingPage> {
         color: const Color(0xFF363740),
         borderRadius: BorderRadius.circular(31.0),
       ),
-      padding: EdgeInsets.all(32),
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Top rewards',
             style: TextStyle(
               fontFamily: 'Roboto Flex',
@@ -618,8 +616,8 @@ class _LandingPageState extends State<LandingPage> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 22),
-          Row(
+          const SizedBox(height: 22),
+          const Row(
             children: [
               Expanded(
                 child: Column(
@@ -637,7 +635,7 @@ class _LandingPageState extends State<LandingPage> {
                       'Capuccino',
                       style: TextStyle(
                         fontFamily: 'Roboto Flex',
-                        color: const Color(0xFFC5C352),
+                        color: Color(0xFFC5C352),
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),
@@ -647,7 +645,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ],
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           _buildMetricRow(
             'Total orders / month',
             '154',
@@ -669,11 +667,11 @@ class _LandingPageState extends State<LandingPage> {
         color: const Color(0xFF363740),
         borderRadius: BorderRadius.circular(31.0),
       ),
-      padding: EdgeInsets.fromLTRB(32, 32, 32, 16),
+      padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Clients',
             style: TextStyle(
               fontFamily: 'Roboto Flex',
@@ -682,8 +680,8 @@ class _LandingPageState extends State<LandingPage> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 22),
-          Row(
+          const SizedBox(height: 22),
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -704,21 +702,21 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _buildClientItem('Arlene McCoy'),
           _buildClientItem('Arlene McCoy'),
           _buildClientItem('Arlene McCoy'),
           _buildClientItem('Arlene McCoy'),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Center(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withOpacity(0.1)),
               ),
-              child: Text(
+              child: const Text(
                 'Load more',
                 style: TextStyle(
                   fontFamily: 'Roboto Flex',
@@ -728,7 +726,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -736,21 +734,21 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildClientItem(String name) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             backgroundColor: Colors.white,
             radius: 15,
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Roboto Flex',
                     color: Colors.white,
                     fontSize: 14,
@@ -768,11 +766,11 @@ class _LandingPageState extends State<LandingPage> {
               ],
             ),
           ),
-          Text(
+          const Text(
             '012',
             style: TextStyle(
               fontFamily: 'Roboto Flex',
-              color: const Color(0xFF6FA6A0),
+              color: Color(0xFF6FA6A0),
               fontSize: 14,
             ),
           ),
@@ -790,7 +788,7 @@ class _LandingPageState extends State<LandingPage> {
             children: [
               Text(
                 leftLabel,
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: 'Roboto Flex',
                   color: Colors.white,
                   fontSize: 14,
@@ -815,7 +813,7 @@ class _LandingPageState extends State<LandingPage> {
               children: [
                 Text(
                   rightLabel,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Roboto Flex',
                     color: Colors.white,
                     fontSize: 14,

@@ -139,8 +139,9 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
         userStats[userId]!['coins'] = (userStats[userId]!['coins'] as int) + coins;
         // Max high score
         int highScore = 0;
-        if (data['highScore'] != null && data['highScore'] is int) highScore = data['highScore'] as int;
-        else if (data['high_score'] != null && data['high_score'] is int) highScore = data['high_score'] as int;
+        if (data['highScore'] != null && data['highScore'] is int) {
+          highScore = data['highScore'] as int;
+        } else if (data['high_score'] != null && data['high_score'] is int) highScore = data['high_score'] as int;
         if (highScore > (userStats[userId]!['high_score'] as int)) {
           userStats[userId]!['high_score'] = highScore;
         }
@@ -200,7 +201,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity, // Full width
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         minWidth: 300, // Minimum width
         minHeight: 300, // Minimum height
       ),
@@ -210,14 +211,14 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
+        padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Clients',
                 style: TextStyle(
@@ -254,11 +255,11 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
               ],
             ),
             
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             
             // Client list
             if (_isLoading)
-              Center(child: CircularProgressIndicator())
+              const Center(child: CircularProgressIndicator())
             else if (_clients.isEmpty)
               Center(
                 child: Text(
@@ -270,7 +271,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
               Column(
                 children: _clients.take(4).map((client) {
                   return Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
                         // Profile Image
@@ -289,7 +290,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
                                     color: widget.textColor, size: 18),
                           ),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         // Name and Email
                         Expanded(
                           child: Column(
@@ -319,7 +320,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
                         ),
                         // Sessions
                         Container(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 9, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.2),
@@ -342,7 +343,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
               ),
               
             // Fixed height spacer
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             
             // Load more button
             Center(
@@ -367,12 +368,12 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
                       debugPrint('WARNING: Navigation callback not provided!');
                       // Fallback message if callback not provided
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Users tab navigation not available')),
+                        const SnackBar(content: Text('Users tab navigation not available')),
                       );
                     }
                   },
                   style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),

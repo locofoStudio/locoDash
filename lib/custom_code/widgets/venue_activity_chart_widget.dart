@@ -169,7 +169,7 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       throw Exception("Using sample data intentionally");
       
       final now = DateTime.now();
-      final thirtyDaysAgo = now.subtract(Duration(days: 30));
+      final thirtyDaysAgo = now.subtract(const Duration(days: 30));
 
       // Count days of the week in the 30-day period
       Map<String, int> dayCountInPeriod = {
@@ -180,7 +180,7 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       while (currentDate.isBefore(now) || currentDate.isAtSameMomentAs(now)) {
         final dayOfWeek = DateFormat('E').format(currentDate);
         dayCountInPeriod[dayOfWeek] = (dayCountInPeriod[dayOfWeek] ?? 0) + 1;
-        currentDate = currentDate.add(Duration(days: 1));
+        currentDate = currentDate.add(const Duration(days: 1));
       }
       
       print('Days of week in period: $dayCountInPeriod');
@@ -608,7 +608,7 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
             borderRadius: BorderRadius.circular(4),
           ),
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Text(
           label,
           style: TextStyle(

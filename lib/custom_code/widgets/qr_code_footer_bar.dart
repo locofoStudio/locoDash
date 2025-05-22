@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'qr_code_scanner_widget.dart';
+import 'qr_code_scanner_bottom_sheet_flow.dart';
 
 class QrCodeFooterBar extends StatelessWidget {
   final String venueId;
@@ -74,22 +74,11 @@ class QrCodeFooterBar extends StatelessWidget {
   }
 
   void _launchScanner(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => QrCodeScannerWidget(
-          venueId: venueId,
-          onScanComplete: (success, message) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: success ? Colors.green : Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          },
-        ),
-      ),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => QrCodeScannerBottomSheetFlow(venueId: venueId),
     );
   }
 } 

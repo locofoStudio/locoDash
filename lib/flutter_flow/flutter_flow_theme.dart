@@ -30,7 +30,7 @@ class FlutterFlowTheme {
           },
         ),
       ),
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         bodyLarge: TextStyle(fontFamily: 'Roboto Flex', color: textColor),
         bodyMedium: TextStyle(fontFamily: 'Roboto Flex', color: textColor),
         displayLarge: TextStyle(fontFamily: 'Roboto Flex', color: textColor, fontWeight: FontWeight.bold),

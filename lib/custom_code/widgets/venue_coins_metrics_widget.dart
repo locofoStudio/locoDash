@@ -107,8 +107,8 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
       print('Loading coin metrics data for venue: ${widget.venueId}');
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day);
-      final startOfWeek = now.subtract(Duration(days: 7));
-      final startOfMonth = now.subtract(Duration(days: 30));
+      final startOfWeek = now.subtract(const Duration(days: 7));
+      final startOfMonth = now.subtract(const Duration(days: 30));
 
       // Query userVenueProgress for this venue
       final userVenueProgressQuery = await FirebaseFirestore.instance
@@ -185,7 +185,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
     
     return Container(
       width: double.infinity, // Full width
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         minWidth: 300, // Minimum width
       ),
       margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
@@ -194,14 +194,14 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
+        padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Coins distributed',
                 style: TextStyle(
@@ -284,7 +284,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
 
   Widget _buildMetricSection(String label, String value, Color valueColor) {
     if (_isLoading) {
-      return Padding(
+      return const Padding(
         padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
         child: Center(child: CircularProgressIndicator()),
       );
@@ -295,7 +295,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
     final valueFontSize = isLargeScreen ? 36.0 : 48.0;
 
     return Padding(
-      padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
+      padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

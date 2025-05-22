@@ -1,18 +1,14 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/custom_code/widgets/index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+// Imports other custom widgets
+// Imports custom actions
+// Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
+// Imports other custom widgets
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:math' as math;
 import 'dart:html' as html;
 import 'dart:convert';
 
@@ -50,21 +46,21 @@ class _UsersListWidgetState extends State<UsersListWidget> {
         borderRadius: BorderRadius.circular(31.0),
         boxShadow: [
           BoxShadow(
-            offset: Offset(-4, 5),
+            offset: const Offset(-4, 5),
             color: Colors.black.withOpacity(0.25),
             spreadRadius: 0,
             blurRadius: 4,
           ),
         ],
       ),
-      padding: EdgeInsets.all(32),
+      padding: const EdgeInsets.all(32),
       child: widget.showPreviewData
           ? _buildPreviewList()
           : FutureBuilder<List<Map<String, dynamic>>>(
               future: _getVenueClients(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -77,10 +73,10 @@ class _UsersListWidgetState extends State<UsersListWidget> {
                 }
 
                 return ListView(
-                  padding: EdgeInsets.fromLTRB(4, 0, 4, 0),
+                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
                   children: [
                     ...snapshot.data!.map((client) => _buildUserCard(client)),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     _buildDownloadAllButton(),
                   ],
                 );
@@ -91,13 +87,13 @@ class _UsersListWidgetState extends State<UsersListWidget> {
 
   Widget _buildUserCard(Map<String, dynamic> client) {
     return Container(
-      margin: EdgeInsets.only(bottom: 24, left: 4, right: 4),
+      margin: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
       decoration: BoxDecoration(
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31),
         boxShadow: [
           BoxShadow(
-            offset: Offset(-4, 5),
+            offset: const Offset(-4, 5),
             color: Colors.black.withOpacity(0.25),
             spreadRadius: 0,
             blurRadius: 8,
@@ -107,14 +103,14 @@ class _UsersListWidgetState extends State<UsersListWidget> {
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 // Profile Image
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                   ),
                   child: ClipRRect(
@@ -124,14 +120,14 @@ class _UsersListWidgetState extends State<UsersListWidget> {
                             imageUrl: client['photo_url'],
                             fit: BoxFit.cover,
                             placeholder: (context, url) =>
-                                CircularProgressIndicator(),
+                                const CircularProgressIndicator(),
                             errorWidget: (context, url, error) =>
                                 Icon(Icons.person, color: widget.textColor),
                           )
                         : Icon(Icons.person, color: widget.textColor),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 // Name and Email
                 Expanded(
                   child: Column(
@@ -159,7 +155,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
                 ),
                 // Download Button
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: widget.textColor.withOpacity(0.2),
@@ -184,17 +180,17 @@ class _UsersListWidgetState extends State<UsersListWidget> {
           ),
           // Stats Row
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildStat(
-                    'Visits', client['sessions'] ?? 0, Color(0xFF6FA6A0)),
-                _buildStat('Coins', client['coins'] ?? 0, Color(0xFFFF8B64)),
+                    'Visits', client['sessions'] ?? 0, const Color(0xFF6FA6A0)),
+                _buildStat('Coins', client['coins'] ?? 0, const Color(0xFFFF8B64)),
                 _buildStat(
-                    'High Score', client['high_score'] ?? 0, Color(0xFFC5C352)),
+                    'High Score', client['high_score'] ?? 0, const Color(0xFFC5C352)),
                 _buildStat(
-                    'Redeemed', client['redeemed'] ?? 0, Color(0xFFFF6464)),
+                    'Redeemed', client['redeemed'] ?? 0, const Color(0xFFFF6464)),
               ],
             ),
           ),
@@ -215,11 +211,11 @@ class _UsersListWidgetState extends State<UsersListWidget> {
             fontSize: 12.0,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
           decoration: BoxDecoration(
-            color: Color(0xFF2B2B2B),
+            color: const Color(0xFF2B2B2B),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -238,7 +234,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
   Widget _buildDownloadAllButton() {
     return Center(
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           border: Border.all(
             color: widget.textColor.withOpacity(0.2),
@@ -276,10 +272,10 @@ class _UsersListWidgetState extends State<UsersListWidget> {
             });
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(4, 0, 4, 0),
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
       children: [
         ...previewData.map((client) => _buildUserCard(client)),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         _buildDownloadAllButton(),
       ],
     );
@@ -328,8 +324,9 @@ class _UsersListWidgetState extends State<UsersListWidget> {
         userStats[userId]!['coins'] = (userStats[userId]!['coins'] as int) + coins;
         // Max high score
         int highScore = 0;
-        if (data['highScore'] != null && data['highScore'] is int) highScore = data['highScore'] as int;
-        else if (data['high_score'] != null && data['high_score'] is int) highScore = data['high_score'] as int;
+        if (data['highScore'] != null && data['highScore'] is int) {
+          highScore = data['highScore'] as int;
+        } else if (data['high_score'] != null && data['high_score'] is int) highScore = data['high_score'] as int;
         if (highScore > (userStats[userId]!['high_score'] as int)) {
           userStats[userId]!['high_score'] = highScore;
         }

@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:convert';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'user_scan_result_bottom_sheet.dart';
+import 'web_qr_scanner_view.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html;
 
 class QrCodeScannerWidget extends StatefulWidget {
   final String venueId;
-  final Function(bool success, String message) onScanComplete;
+  final Function(bool success, String message)? onScanComplete;
 
   const QrCodeScannerWidget({
-    Key? key,
+    super.key,
     required this.venueId,
-    required this.onScanComplete,
-  }) : super(key: key);
+    this.onScanComplete,
+  });
 
   @override
   State<QrCodeScannerWidget> createState() => _QrCodeScannerWidgetState();
@@ -23,42 +30,24 @@ class _QrCodeScannerWidgetState extends State<QrCodeScannerWidget> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   bool _isProcessing = false;
-  bool _hasPermission = false;
-  bool _isCameraInitialized = false;
-  String? _errorMessage;
-  Barcode? _lastScannedCode;
+  String? _lastScannedCode;
 
-  @override
-  void initState() {
-    super.initState();
-    _checkPermission();
-  }
+  Future<void> _processQRCode(String? code) async {
+    if (code == null || _isProcessing || code == _lastScannedCode) return;
 
-  Future<void> _checkPermission() async {
-    final status = await Permission.camera.request();
     setState(() {
-      _hasPermission = status.isGranted;
-      if (!_hasPermission) {
-        _errorMessage = 'Camera permission is required to scan QR codes';
-      }
+      _isProcessing = true;
+      _lastScannedCode = code;
     });
-  }
-
-  void _processQRCode(String code) async {
-    if (_isProcessing) return;
-    _isProcessing = true;
 
     try {
-      // Pause camera while processing
-      await controller?.pauseCamera();
-
       // Parse QR code data
       final qrData = json.decode(code);
       
-      // Validate required fields
-      if (!qrData.containsKey('userId') ||
-          !qrData.containsKey('venueId') ||
-          !qrData.containsKey('timestamp') ||
+      // Validate QR code data
+      if (!qrData.containsKey('userId') || 
+          !qrData.containsKey('venueId') || 
+          !qrData.containsKey('timestamp') || 
           !qrData.containsKey('action')) {
         throw Exception('Invalid QR code format');
       }
@@ -69,15 +58,15 @@ class _QrCodeScannerWidgetState extends State<QrCodeScannerWidget> {
       }
 
       // Validate timestamp (within last 2 minutes)
-      final timestamp = qrData['timestamp'] as int;
-      final now = DateTime.now().millisecondsSinceEpoch;
-      if (now - timestamp > 120000) { // 2 minutes in milliseconds
+      final timestamp = DateTime.fromMillisecondsSinceEpoch(qrData['timestamp']);
+      final now = DateTime.now();
+      if (now.difference(timestamp).inMinutes > 2) {
         throw Exception('QR code has expired');
       }
 
-      // Look up user in Firestore
+      // Get user data from Firestore
       final userDoc = await FirebaseFirestore.instance
-          .collection('userVenueProgress')
+          .collection('users')
           .doc(qrData['userId'])
           .get();
 
@@ -85,198 +74,169 @@ class _QrCodeScannerWidgetState extends State<QrCodeScannerWidget> {
         throw Exception('User not found');
       }
 
-      // Process the action
-      switch (qrData['action']) {
-        case 'loyalty_redeem':
-          await _processLoyaltyRedeem(userDoc);
-          break;
-        default:
-          throw Exception('Unknown action type');
+      final userData = userDoc.data() as Map<String, dynamic>;
+
+      // Get venue data
+      final venueDoc = await FirebaseFirestore.instance
+          .collection('venues')
+          .doc(qrData['venueId'])
+          .get();
+
+      if (!venueDoc.exists) {
+        throw Exception('Venue not found');
       }
 
-      // Success: Show bottom sheet with user info
-      final userData = userDoc.data() as Map<String, dynamic>;
-      if (!mounted) return;
+      final venueData = venueDoc.data() as Map<String, dynamic>;
 
-      // Close the scanner bottom sheet
-      Navigator.pop(context);
+      // Get user's progress for this venue
+      final progressDoc = await FirebaseFirestore.instance
+          .collection('userVenueProgress')
+          .doc('${qrData['userId']}_${qrData['venueId']}')
+          .get();
 
-      // Show the user info bottom sheet
-      await showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => UserScanResultBottomSheet(userData: userData),
-      );
-      
-      widget.onScanComplete(true, 'Successfully processed QR code');
+      final progressData = progressDoc.exists 
+          ? progressDoc.data() as Map<String, dynamic>
+          : {
+              'totalPoints': 0,
+              'totalVisits': 0,
+              'lastVisit': null,
+              'completedChallenges': [],
+              'redeemedRewards': [],
+            };
+
+      if (mounted) {
+        // Show bottom sheet with user data
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => UserScanResultBottomSheet(
+            userData: userData,
+            venueData: venueData,
+            progressData: progressData,
+            qrData: qrData,
+          ),
+        );
+        widget.onScanComplete?.call(true, 'Successfully processed QR code');
+      }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-        });
-        widget.onScanComplete(false, e.toString());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
-        // Resume camera after error
-        await controller?.resumeCamera();
+        widget.onScanComplete?.call(false, e.toString());
       }
     } finally {
-      _isProcessing = false;
-    }
-  }
-
-  @override
-  void reassemble() {
-    super.reassemble();
-    if (controller != null) {
-      controller!.pauseCamera();
-      controller!.resumeCamera();
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Color(0xFF242529),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
+    if (kIsWeb) {
+      return Container(
+        height: 450,
+        decoration: BoxDecoration(
+          color: const Color(0xFF242529),
+          borderRadius: BorderRadius.circular(10),
         ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.qr_code_scanner,
+              size: 64,
+              color: Color(0xFFC5C352),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'QR Code Scanner',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _isProcessing
+                  ? null
+                  : () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => Center(
+                          child: WebQrScannerView(
+                            onScan: (code) {
+                              Navigator.of(context).pop();
+                              _processQRCode(code);
+                            },
+                          ),
+                        ),
+                      );
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC5C352),
+                foregroundColor: const Color(0xFF363740),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              child: Text(_isProcessing ? 'Processing...' : 'Start Scanner'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      height: 400,
+      decoration: BoxDecoration(
+        color: const Color(0xFF242529),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Scan QR Code',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Roboto Flex',
-                  ),
-                ),
-                Row(
-                  children: [
-                    if (_isCameraInitialized) ...[
-                      IconButton(
-                        icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                        onPressed: () async {
-                          await controller?.flipCamera();
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.flash_on, color: Colors.white),
-                        onPressed: () async {
-                          await controller?.toggleFlash();
-                        },
-                      ),
-                    ],
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () {
-                        controller?.dispose();
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
-                ),
-              ],
+          QRView(
+            key: qrKey,
+            onQRViewCreated: _onQRViewCreated,
+            overlay: QrScannerOverlayShape(
+              borderColor: const Color(0xFFC5C352),
+              borderRadius: 10,
+              borderLength: 30,
+              borderWidth: 10,
+              cutOutSize: 300,
             ),
           ),
-          Expanded(
-            child: _hasPermission
-                ? Stack(
-                    children: [
-                      QRView(
-                        key: qrKey,
-                        onQRViewCreated: _onQRViewCreated,
-                        overlay: QrScannerOverlayShape(
-                          borderColor: const Color(0xFFC5C352),
-                          borderRadius: 10,
-                          borderLength: 30,
-                          borderWidth: 10,
-                          cutOutSize: MediaQuery.of(context).size.width * 0.8,
-                        ),
-                      ),
-                      if (_errorMessage != null)
-                        Container(
-                          color: Colors.black54,
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(color: Colors.white),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _errorMessage = null;
-                                      });
-                                      controller?.resumeCamera();
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFC5C352),
-                                    ),
-                                    child: const Text('Try Again'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  )
-                : Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Camera permission is required',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _checkPermission,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFC5C352),
-                          ),
-                          child: const Text('Grant Permission'),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Center(
-              child: _isProcessing
-                  ? const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC5C352)),
-                    )
-                  : const Text(
-                      'Position QR code within frame',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'Roboto Flex',
-                      ),
-                    ),
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.flash_on, color: Colors.white),
+                  onPressed: () async {
+                    await controller?.toggleFlash();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                  onPressed: () async {
+                    await controller?.flipCamera();
+                  },
+                ),
+              ],
             ),
           ),
         ],
@@ -286,164 +246,8 @@ class _QrCodeScannerWidgetState extends State<QrCodeScannerWidget> {
 
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
-    setState(() {
-      _isCameraInitialized = true;
-    });
-    
     controller.scannedDataStream.listen((scanData) {
-      if (scanData.code != null && !_isProcessing && scanData != _lastScannedCode) {
-        _lastScannedCode = scanData;
-        _processQRCode(scanData.code!);
-      }
+      _processQRCode(scanData.code);
     });
-  }
-
-  Future<void> _processLoyaltyRedeem(DocumentSnapshot userDoc) async {
-    final userData = userDoc.data() as Map<String, dynamic>;
-    final coins = userData['coin'] as int? ?? 0;
-    
-    if (coins <= 0) {
-      throw Exception('User has no coins to redeem');
-    }
-
-    // Update user's coins
-    await userDoc.reference.update({
-      'coin': 0,
-      'redeemed': FieldValue.increment(coins),
-      'last_redeemed': FieldValue.serverTimestamp(),
-    });
-  }
-
-  @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
-  }
-}
-
-class UserScanResultBottomSheet extends StatelessWidget {
-  final Map<String, dynamic> userData;
-  const UserScanResultBottomSheet({Key? key, required this.userData}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 60),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      decoration: BoxDecoration(
-        color: const Color(0xFF363740),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-        border: Border.all(color: const Color(0xFFC5C352), width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Align(
-            alignment: Alignment.topRight,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 28),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          CircleAvatar(
-            radius: 59,
-            backgroundColor: Colors.white24,
-            backgroundImage: userData['photoUrl'] != null && userData['photoUrl'] != ''
-                ? NetworkImage(userData['photoUrl'])
-                : null,
-            child: userData['photoUrl'] == null || userData['photoUrl'] == ''
-                ? const Icon(Icons.person, size: 48, color: Colors.white)
-                : null,
-          ),
-          const SizedBox(height: 29),
-          Text(
-            userData['displayName'] ?? 'User Name',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Roboto Flex',
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            userData['email'] ?? 'Email',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontFamily: 'Roboto Flex',
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Coins: ${userData['coin'] ?? 0}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontFamily: 'Roboto Flex',
-            ),
-          ),
-          Text(
-            'Sessions: ${userData['sessions'] ?? 0}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontFamily: 'Roboto Flex',
-            ),
-          ),
-          const SizedBox(height: 14),
-          OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            ),
-            child: const Text('View more', style: TextStyle(color: Colors.white)),
-          ),
-          const SizedBox(height: 29),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                ),
-                child: const Text('Unlock Game'),
-              ),
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                ),
-                child: const Text('Confirm Reward'),
-              ),
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                ),
-                child: const Text('Reward Coins'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
   }
 } 

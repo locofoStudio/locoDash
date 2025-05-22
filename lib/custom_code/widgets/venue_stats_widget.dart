@@ -1,17 +1,13 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/custom_code/widgets/index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+// Imports other custom widgets
+// Imports custom actions
+// Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
+// Imports other custom widgets
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../utils/responsive_helper.dart';
 
 class VenueStatsWidget extends StatefulWidget {
@@ -167,7 +163,7 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity, // Full width
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         minWidth: 300, // Minimum width
       ),
       margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
@@ -176,14 +172,14 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
+        padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
             Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
+              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
                 'Venue Stats',
                 style: TextStyle(
@@ -197,16 +193,16 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
 
             // Stats content
             if (_isLoading)
-              Center(child: CircularProgressIndicator())
+              const Center(child: CircularProgressIndicator())
             else
               Column(
                 children: [
                   _buildStatRow('Total Sessions', _metricsData['totalSessions'].toString()),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildStatRow('Total Coins', _metricsData['totalCoins'].toString()),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildStatRow('Avg. High Score', _metricsData['avgHighScore'].toString()),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildStatRow('Unique Players', _metricsData['uniquePlayers'].toString()),
                 ],
               ),
