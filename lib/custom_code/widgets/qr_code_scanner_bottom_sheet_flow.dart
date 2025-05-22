@@ -1,3 +1,6 @@
+// This file is temporarily disabled because it depends on qr_code_scanner, which has been removed for compatibility reasons.
+// Uncomment and refactor when re-implementing QR code scanning.
+/*
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
@@ -53,13 +56,15 @@ class _QrCodeScannerBottomSheetFlowState extends State<QrCodeScannerBottomSheetF
       int sessions = 0;
       if (progressData.containsKey('coin')) {
         final c = progressData['coin'];
-        if (c is int) coins = c;
-        else if (c is String) coins = int.tryParse(c) ?? 0;
+        if (c is int) {
+          coins = c;
+        } else if (c is String) coins = int.tryParse(c) ?? 0;
       }
       if (progressData.containsKey('sessions')) {
         final s = progressData['sessions'];
-        if (s is int) sessions = s;
-        else if (s is String) sessions = int.tryParse(s) ?? 0;
+        if (s is int) {
+          sessions = s;
+        } else if (s is String) sessions = int.tryParse(s) ?? 0;
       }
       progressData['coin'] = coins;
       progressData['sessions'] = sessions;
@@ -321,4 +326,5 @@ class _MobileQrScannerState extends State<_MobileQrScanner> {
       ),
     );
   }
-} 
+}
+*/ 

@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'user_scan_result_bottom_sheet.dart';
 import 'web_qr_scanner_view.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html;
 
 class QrCodeScannerWidget extends StatefulWidget {
   final String venueId;
