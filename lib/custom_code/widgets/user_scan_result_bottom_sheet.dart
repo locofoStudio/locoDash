@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
 
 class UserScanResultBottomSheet extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -55,7 +56,7 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
 
   int calculateBaseCoins(double priceHkd) {
     if (priceHkd <= 0) return 0;
-    return (priceHkd / 0.12).round();
+    return (priceHkd * 0.8).ceil();
   }
 
   Future<void> _unlockGame() async {
