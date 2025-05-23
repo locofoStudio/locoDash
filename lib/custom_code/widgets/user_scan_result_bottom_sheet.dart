@@ -6,6 +6,7 @@ class UserScanResultBottomSheet extends StatefulWidget {
   final Map<String, dynamic> venueData;
   final Map<String, dynamic> progressData;
   final Map<String, String> qrData;
+  final String currentVenueId;
 
   const UserScanResultBottomSheet({
     Key? key,
@@ -13,6 +14,7 @@ class UserScanResultBottomSheet extends StatefulWidget {
     required this.venueData,
     required this.progressData,
     required this.qrData,
+    required this.currentVenueId,
   }) : super(key: key);
 
   @override
@@ -23,7 +25,27 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
   bool _isLoading = false;
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.qrData['venueId'] != widget.currentVenueId) {
+      setState(() {
+        _error = 'Wrong venue. This QR code is for a different venue.';
+      });
+    }
+  }
+
   Future<void> _unlockGame() async {
+    if (widget.qrData['venueId'] != widget.currentVenueId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot unlock game for a different venue'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -33,18 +55,15 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
       print('Starting game unlock process...');
       print('QR data: ${widget.qrData}');
       
-      // Get a reference to the Firestore instance
       final firestore = FirebaseFirestore.instance;
       
-      // Try to find the document in the userVenueProgress collection using a query
-      print('Querying userVenueProgress collection...');
-      final querySnapshot = await firestore
-          .collection('userVenueProgress')
-          .where('userId', isEqualTo: widget.qrData['userId'])
-          .where('venueId', isEqualTo: widget.qrData['venueId'])
-          .get();
+      final docId = '${widget.qrData['userId']}-${widget.qrData['venueId']}';
+      print('Looking up document with ID: $docId');
       
-      if (querySnapshot.docs.isEmpty) {
+      final docRef = firestore.collection('userVenueProgress').doc(docId);
+      final doc = await docRef.get();
+      
+      if (!doc.exists) {
         print('No matching document found');
         setState(() {
           _error = 'User progress not found';
@@ -53,23 +72,16 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
         return;
       }
       
-      final docId = querySnapshot.docs.first.id;
-      print('Found document with ID: $docId');
-      print('Current data: ${querySnapshot.docs.first.data()}');
-      
-      // Update the hasPlayed field to false
-      await firestore.collection('userVenueProgress').doc(docId).update({
+      await docRef.update({
         'hasPlayed': false
       });
       
       print('Document updated successfully');
       
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Game unlocked successfully!'))
+        const SnackBar(content: Text('Game unlocked successfully!'))
       );
       
-      // Close the bottom sheet
       Navigator.pop(context);
     } catch (e) {
       print('Error unlocking game: $e');
@@ -83,91 +95,218 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 472, maxHeight: 641),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      width: 641,
+      height: 472,
       decoration: BoxDecoration(
         color: const Color(0xFF363740),
-        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFC5C352), width: 1),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
         children: [
-          Align(
-            alignment: Alignment.topRight,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 28),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          const Text(
-            'User Information',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Roboto Flex',
-            ),
-          ),
-          const SizedBox(height: 29),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                _error!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
+          // Close button
+          Positioned(
+            top: 33,
+            right: 33,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 33,
+                height: 18.5,
+                child: CustomPaint(
+                  painter: CloseIconPainter(),
+                ),
               ),
             ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A2A33),
-              borderRadius: BorderRadius.circular(16),
-            ),
+          ),
+          
+          // Main content
+          Padding(
+            padding: const EdgeInsets.all(32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Name', widget.userData['name'] ?? 'N/A'),
-                const SizedBox(height: 12),
-                _buildInfoRow('Email', widget.userData['email'] ?? 'N/A'),
-                const SizedBox(height: 12),
-                _buildInfoRow('Phone', widget.userData['phone'] ?? 'N/A'),
-                const SizedBox(height: 12),
-                _buildInfoRow('Venue', widget.venueData['name'] ?? 'N/A'),
-                const SizedBox(height: 12),
-                _buildInfoRow('Coins', '${widget.progressData['coin'] ?? 0}'),
-                const SizedBox(height: 12),
-                _buildInfoRow('Sessions', '${widget.progressData['sessions'] ?? 0}'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
-              alignment: WrapAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _unlockGame,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC5C352),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                if (widget.qrData['venueId'] != widget.currentVenueId)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        'Wrong venue',
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 24,
+                          fontFamily: 'Roboto Flex',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left side - User info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // User photo
+                              Container(
+                                width: 118,
+                                height: 118,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFDCDCDC),
+                                ),
+                                child: widget.userData['photoUrl'] != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(59),
+                                        child: Image.network(
+                                          widget.userData['photoUrl'],
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : const Icon(Icons.person, size: 59, color: Colors.white),
+                              ),
+                              const SizedBox(height: 29),
+                              // User info
+                              Text(
+                                widget.userData['displayName'] ?? 'N/A',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 19,
+                                  fontFamily: 'Roboto Flex',
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                widget.userData['email'] ?? 'N/A',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 19,
+                                  fontFamily: 'Roboto Flex',
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Coins: ${widget.progressData['coin'] ?? 0}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 19,
+                                  fontFamily: 'Roboto Flex',
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Sessions: ${widget.progressData['sessions'] ?? 0}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 19,
+                                  fontFamily: 'Roboto Flex',
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              // View more button
+                              Container(
+                                height: 23,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.white),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'View more',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontFamily: 'Roboto Flex',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        )
-                      : const Text('Unlock Game'),
-                ),
+                        ),
+                        
+                        // Right side - Action buttons
+                        Column(
+                          children: [
+                            // Unlock Game button
+                            GestureDetector(
+                              onTap: _isLoading ? null : _unlockGame,
+                              child: Container(
+                                height: 23,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.white),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Center(
+                                        child: Text(
+                                          'Unlock Game',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontFamily: 'Roboto Flex',
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            // Reward Coins button
+                            Container(
+                              height: 23,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.white),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Reward Coins',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontFamily: 'Roboto Flex',
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            // Confirm Reward button
+                            Container(
+                              height: 23,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.white),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Confirm Reward',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontFamily: 'Roboto Flex',
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -175,29 +314,21 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
       ),
     );
   }
+}
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-            fontFamily: 'Roboto Flex',
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Roboto Flex',
-          ),
-        ),
-      ],
-    );
+class CloseIconPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+
+    // Draw X shape
+    canvas.drawLine(Offset(0, 0), Offset(size.width, size.height), paint);
+    canvas.drawLine(Offset(0, size.height), Offset(size.width, 0), paint);
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 } 

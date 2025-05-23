@@ -11,6 +11,7 @@ import '../utils/responsive_helper.dart';
 import 'dart:html' as html;
 import 'dart:convert';
 import '/custom_code/widgets/user_scan_result_bottom_sheet.dart';
+import '../widgets/qr_scanner_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -164,9 +165,7 @@ class _LandingPageState extends State<LandingPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-            onPressed: () {
-              Navigator.pushNamed(context, 'QRScanner');
-            },
+            onPressed: () => _openStandaloneQRScanner(context),
           ),
         ],
         centerTitle: false,
@@ -194,6 +193,95 @@ class _LandingPageState extends State<LandingPage> {
         ),
       ),
     );
+  }
+
+  void _openStandaloneQRScanner(BuildContext context) {
+    final scannerWindow = html.window.open('/qr_scanner_standalone.html', 'qr_scanner', 'width=480,height=600');
+    void listener(html.Event event) async {
+      if (event is html.MessageEvent && event.data is Map && event.data['type'] == 'qr_scanned') {
+        final String code = event.data['data'];
+        print('Scanned QR code: $code'); // Print the scanned code
+        await Future.delayed(const Duration(milliseconds: 500)); // Add a delay
+        _handleScannedQRCode(code);
+        html.window.removeEventListener('message', listener);
+        scannerWindow?.close();
+      }
+    }
+    html.window.addEventListener('message', listener);
+  }
+
+  void _handleScannedQRCode(String code) async {
+    try {
+      // Normalize all dash-like characters and other separators to a regular hyphen-minus
+      String normalized = code
+          .replaceAll(RegExp(r'[–—−]'), '-') // en dash, em dash, minus sign
+          .replaceAll(RegExp(r'[_|/]'), '-'); // also normalize other separators
+
+      print('Normalized scanned code: "$normalized" (length: \\${normalized.length})');
+
+      final parts = normalized.split('-');
+      String docId;
+      String userId;
+      String venueId;
+
+      if (parts.length == 2) {
+        userId = parts[0];
+        venueId = parts[1];
+        docId = '$userId-$venueId';
+      } else {
+        docId = normalized;
+        final match = RegExp(r'^(.*?)-(.*)[0m').firstMatch(docId);
+        userId = match != null ? match.group(1) ?? '' : '';
+        venueId = match != null ? match.group(2) ?? '' : '';
+      }
+
+      print('Looking up userVenueProgress docId: "$docId" (length: \\${docId.length})');
+
+      final doc = await FirebaseFirestore.instance
+          .collection('userVenueProgress')
+          .doc(docId)
+          .get();
+
+      if (!doc.exists) {
+        throw Exception('No userVenueProgress found for this user/venue');
+      }
+
+      final data = doc.data();
+
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return UserScanResultBottomSheet(
+            userData: {
+              'displayName': data?['displayName'] ?? data?['name'] ?? 'N/A',
+              'email': data?['email'] ?? 'N/A',
+              'phone': data?['phone'] ?? 'N/A',
+            },
+            venueData: {
+              'name': data?['venueName'] ?? data?['venueId'] ?? 'N/A',
+            },
+            progressData: {
+              'coin': data?['coin'] ?? 0,
+              'sessions': data?['sessions'] ?? 0,
+            },
+            qrData: {'userId': userId, 'venueId': venueId},
+            currentVenueId: _selectedVenue ?? '',
+          );
+        },
+      );
+    } catch (e) {
+      print('Error handling QR code: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error processing QR code: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Mobile layout - stacked widgets
