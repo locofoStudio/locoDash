@@ -277,6 +277,7 @@ class _LandingPageState extends State<LandingPage> {
               'displayName': data?['displayName'] ?? data?['name'] ?? 'N/A',
               'email': data?['email'] ?? 'N/A',
               'phone': data?['phone'] ?? 'N/A',
+              'photoUrl': data?['photoUrl'] ?? '',
             },
             venueData: {
               'name': data?['venueName'] ?? data?['venueId'] ?? 'N/A',
