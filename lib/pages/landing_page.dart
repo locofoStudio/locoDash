@@ -12,6 +12,7 @@ import 'dart:html' as html;
 import 'dart:convert';
 import '/custom_code/widgets/user_scan_result_bottom_sheet.dart';
 import '../widgets/qr_scanner_widget.dart';
+import '/custom_code/widgets/qr_code_footer_bar.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -138,60 +139,76 @@ class _LandingPageState extends State<LandingPage> {
   Widget build(BuildContext context) {
     // Check if the screen is mobile or larger (tablet/desktop)
     final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
-    
-    return Scaffold(
-      key: scaffoldKey,
-      backgroundColor: const Color(0xFF242529),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF242529),
-        automaticallyImplyLeading: false,
-        title: Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Loco Dashboard',
-              style: TextStyle(
-                fontFamily: 'Roboto Flex',
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+    return Stack(
+      children: [
+        Scaffold(
+          key: scaffoldKey,
+          backgroundColor: const Color(0xFF242529),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF242529),
+            automaticallyImplyLeading: false,
+            title: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Loco Dashboard',
+                  style: TextStyle(
+                    fontFamily: 'Roboto Flex',
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                // Venue selection dropdown
+                _buildVenueSelector(),
+              ],
             ),
-            // Venue selection dropdown
-            _buildVenueSelector(),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-            onPressed: () => _openStandaloneQRScanner(context),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                onPressed: () => _openStandaloneQRScanner(context),
+              ),
+            ],
+            centerTitle: false,
+            elevation: 0,
           ),
-        ],
-        centerTitle: false,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        top: true,
-        child: Column(
-          children: [
-            // Tabs row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: _buildTabRow(),
+          body: SafeArea(
+            top: true,
+            child: Column(
+              children: [
+                // Tabs row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: _buildTabRow(),
+                ),
+                // Main content with responsive layout
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: isLargeScreen 
+                        ? _buildDesktopLayout() 
+                        : _buildMobileLayout(),
+                  ),
+                ),
+              ],
             ),
-            
-            // Main content with responsive layout
-            Expanded(
-              child: SingleChildScrollView(
-                child: isLargeScreen 
-                    ? _buildDesktopLayout() 
-                    : _buildMobileLayout(),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: QrCodeFooterBar(
+            userId: 'dummyUser',
+            venueId: _selectedVenue ?? 'dummyVenue',
+            backgroundColor: const Color(0xFF242529),
+            accentColor: const Color(0xFFC5C352),
+            iconColor: const Color(0xFF363740),
+            textColor: Colors.black,
+            onQrTap: () => _openStandaloneQRScanner(context),
+          ),
+        ),
+      ],
     );
   }
 
