@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>QR Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+      body { margin: 0; background: #222; color: #fff; font-family: sans-serif; }
+      #reader { width: 100vw; height: 60vh; }
+      #close-btn { position: absolute; top: 10px; right: 10px; z-index: 10; background: #333; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+      #confirm-btn { display: block; margin: 24px auto 0 auto; padding: 12px 32px; font-size: 18px; background: #C5C352; color: #222; border: none; border-radius: 8px; cursor: pointer; }
+      #qr-result { text-align: center; margin-top: 24px; font-size: 20px; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <button id="close-btn" onclick="window.close()">Close</button>
+    <div id="reader"></div>
+    <div id="qr-result">Scan a QR code...</div>
+    <button id="confirm-btn" disabled>Confirm</button>
+    <script>
+      let scannedCode = null;
+      function onScanSuccess(decodedText, decodedResult) {
+        scannedCode = decodedText;
+        document.getElementById('qr-result').textContent = 'Scanned: ' + decodedText;
+        document.getElementById('confirm-btn').disabled = false;
+      }
+      let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: 250 });
+      html5QrcodeScanner.render(onScanSuccess);
+      document.getElementById('confirm-btn').onclick = function() {
+        if (scannedCode && window.opener) {
+          window.opener.postMessage({ type: 'qr_scanned', data: scannedCode }, '*');
+          setTimeout(() => window.close(), 500); // Add a delay before closing
+        }
+      };
+    </script>
+  </body>
+</html> 

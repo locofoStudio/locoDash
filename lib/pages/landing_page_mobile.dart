@@ -26,6 +26,7 @@ class _LandingPageState extends State<LandingPage> {
   List<String> _venueIds = [];
   bool _loadingVenues = true;
   final bool _dropdownOpen = false;
+  bool _showQrScanner = false;
 
   @override
   void initState() {
@@ -165,27 +166,33 @@ class _LandingPageState extends State<LandingPage> {
         centerTitle: false,
         elevation: 0,
       ),
-      body: SafeArea(
-        top: true,
-        child: Column(
-          children: [
-            // Tabs row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: _buildTabRow(),
+      body: Stack(
+        children: [
+          SafeArea(
+            top: true,
+            child: Column(
+              children: [
+                // Tabs row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: _buildTabRow(),
+                ),
+                
+                // Main content with responsive layout
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: isLargeScreen 
+                        ? _buildDesktopLayout() 
+                        : _buildMobileLayout(),
+                  ),
+                ),
+              ],
             ),
-            
-            // Main content with responsive layout
-            Expanded(
-              child: SingleChildScrollView(
-                child: isLargeScreen 
-                    ? _buildDesktopLayout() 
-                    : _buildMobileLayout(),
-              ),
-            ),
-          ],
-        ),
+          ),
+          if (_showQrScanner) _buildQrScannerBottomSheet(),
+        ],
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -832,6 +839,167 @@ class _LandingPageState extends State<LandingPage> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildQrScannerBottomSheet() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        width: 641,
+        height: 472,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF363740),
+          borderRadius: BorderRadius.circular(31),
+          border: Border.all(
+            color: const Color(0xFFC5C352),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Header with close button
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Scan the QR code',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        _showQrScanner = false;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            // QR Scanner iframe
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(31),
+                ),
+                child: const HtmlElementView(
+                  viewType: 'qr-scanner',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Add a method to show the QR scanner
+  void _showQrScannerBottomSheet() {
+    setState(() {
+      _showQrScanner = true;
+    });
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      height: 65,
+      decoration: const BoxDecoration(
+        color: Color(0xFF24262A),
+      ),
+      child: Stack(
+        children: [
+          // Gold accent bar at the top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 45,
+            child: Container(
+              color: const Color(0xFFC5C352),
+            ),
+          ),
+          // Navigation items
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(Icons.home_outlined, 'Home', 0),
+                _buildNavItem(Icons.people_outline, 'Users', 1),
+                _buildNavItem(Icons.local_offer_outlined, 'Offers', 2),
+                _buildNavItem(Icons.leaderboard_outlined, 'Leaderboard', 3),
+              ],
+            ),
+          ),
+          // QR Scanner button
+          Positioned(
+            right: 0,
+            top: -20,
+            child: GestureDetector(
+              onTap: _showQrScannerBottomSheet,
+              child: Container(
+                width: 75,
+                height: 66,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFC5C352),
+                ),
+                child: const Icon(
+                  Icons.qr_code_scanner,
+                  color: Color(0xFF0F2529),
+                  size: 40,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFFC5C352) : Colors.white.withOpacity(0.5),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFFC5C352) : Colors.white.withOpacity(0.5),
+                fontSize: 12,
+                fontFamily: 'Roboto Flex',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 } 
