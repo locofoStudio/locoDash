@@ -13,6 +13,8 @@ import 'dart:convert';
 import '/custom_code/widgets/user_scan_result_bottom_sheet.dart';
 import '../widgets/qr_scanner_widget.dart';
 import '/custom_code/widgets/qr_code_footer_bar.dart';
+import '/custom_code/widgets/venue_coin_earned_widget.dart';
+import '/custom_code/widgets/loyalty_stats_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -330,73 +332,77 @@ class _LandingPageState extends State<LandingPage> {
       padding: const EdgeInsets.all(14),
       child: Column(
         children: [
-          // Top row: Users, Activity, Venue Stats
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Users widget
+                // Left column
                 Expanded(
                   flex: 1,
-                  child: VenueUserMetricsWidget(
-                    venueId: _selectedVenue ?? '',
-                    showPreviewData: false,
+                  child: Column(
+                    children: [
+                      VenueUserMetricsWidget(
+                        venueId: _selectedVenue ?? '',
+                        showPreviewData: false,
+                      ),
+                      const SizedBox(height: 14),
+                      VenueCoinEarnedWidget(
+                        venueId: _selectedVenue ?? '',
+                        showPreviewData: false,
+                      ),
+                      const SizedBox(height: 14),
+                      VenueCoinsMetricsWidget(
+                        venueId: _selectedVenue ?? '',
+                        showPreviewData: false,
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 14),
-                // Activity widget
+                // Center column: Activity and Clients stacked
                 Expanded(
                   flex: 2,
-                  child: VenueActivityChartWidget(
-                    venueId: _selectedVenue ?? '',
-                    showPreviewData: true,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: VenueActivityChartWidget(
+                          venueId: _selectedVenue ?? '',
+                          showPreviewData: true,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Expanded(
+                        flex: 1,
+                        child: VenueClientsWidget(
+                          venueId: _selectedVenue ?? '',
+                          showPreviewData: true,
+                          onNavigateToUsersTab: () {
+                            setState(() {
+                              _selectedIndex = 1;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 14),
-                // Venue Stats widget
+                // Right column: Venue Stats, Top Rewards, Top Players stacked
                 Expanded(
                   flex: 1,
-                  child: VenueStatsWidget(
-                    venueId: _selectedVenue ?? '',
-                    showPreviewData: false,
+                  child: Column(
+                    children: [
+                      VenueStatsWidget(
+                        venueId: _selectedVenue ?? '',
+                        showPreviewData: false,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildTopRewardsWidget(),
+                      const SizedBox(height: 14),
+                      TopPlayersCard(venueId: _selectedVenue ?? ''),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          // Bottom row: Coins distributed, Clients, Top Rewards
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Coins widget
-                Expanded(
-                  flex: 1,
-                  child: VenueCoinsMetricsWidget(
-                    venueId: _selectedVenue ?? '',
-                    showPreviewData: false,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                // Clients widget
-                Expanded(
-                  flex: 1,
-                  child: VenueClientsWidget(
-                    venueId: _selectedVenue ?? '',
-                    showPreviewData: true, // Use preview data to match the design
-                    onNavigateToUsersTab: () {
-                      setState(() {
-                        _selectedIndex = 1; // Navigate to Users tab
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 14),
-                // Top Rewards widget (use the existing rewards widget)
-                Expanded(
-                  flex: 1,
-                  child: _buildTopRewardsWidget(),
                 ),
               ],
             ),
@@ -588,10 +594,15 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildOverviewTab() {
     return Padding(
-      padding: const EdgeInsets.all(14), // Apply consistent 14px padding on all sides
+      padding: const EdgeInsets.all(14),
       child: Column(
         children: [
           VenueUserMetricsWidget(
+            venueId: _selectedVenue ?? '',
+            showPreviewData: false,
+          ),
+          const SizedBox(height: 14),
+          VenueCoinEarnedWidget(
             venueId: _selectedVenue ?? '',
             showPreviewData: false,
           ),
@@ -620,6 +631,10 @@ class _LandingPageState extends State<LandingPage> {
               });
             },
           ),
+          const SizedBox(height: 14),
+          _buildTopRewardsWidget(),
+          const SizedBox(height: 14),
+          TopPlayersCard(venueId: _selectedVenue ?? ''),
         ],
       ),
     );

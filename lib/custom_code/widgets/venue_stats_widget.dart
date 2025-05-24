@@ -40,6 +40,8 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
     'totalCoins': 0,
     'avgHighScore': 0,
     'uniquePlayers': 0,
+    'numOffers': 0,
+    'itemsRedeemed': 0,
   };
   bool _isLoading = true;
 
@@ -66,6 +68,8 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
           'totalCoins': 3576,
           'avgHighScore': 443,
           'uniquePlayers': 18,
+          'numOffers': 3,
+          'itemsRedeemed': 12,
         };
         _isLoading = false;
       });
@@ -79,6 +83,8 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
           'totalCoins': 0,
           'avgHighScore': 0,
           'uniquePlayers': 0,
+          'numOffers': 0,
+          'itemsRedeemed': 0,
         };
         _isLoading = false;
       });
@@ -105,6 +111,7 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
       int totalHighScore = 0;
       int highScoreCount = 0;
       Set<String> uniqueUserIds = {};
+      int itemsRedeemed = 0;
 
       for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
@@ -130,10 +137,27 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
           totalHighScore += highScore;
           highScoreCount++;
         }
+
+        // Sum redeemed
+        if (data['redeemed'] != null && data['redeemed'] is int) {
+          itemsRedeemed += data['redeemed'] as int;
+        }
       }
 
       final avgHighScore =
           highScoreCount > 0 ? (totalHighScore / highScoreCount).round() : 0;
+
+      // Query offers collection for this venue
+      int numOffers = 0;
+      try {
+        final offersQuery = await FirebaseFirestore.instance
+            .collection('offers')
+            .where('venueId', isEqualTo: widget.venueId)
+            .get();
+        numOffers = offersQuery.docs.length;
+      } catch (e) {
+        print('Error fetching offers: $e');
+      }
 
       if (mounted) {
         setState(() {
@@ -142,13 +166,15 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
             'totalCoins': totalCoins,
             'avgHighScore': avgHighScore,
             'uniquePlayers': uniqueUserIds.length,
+            'numOffers': numOffers,
+            'itemsRedeemed': itemsRedeemed,
           };
           _isLoading = false;
         });
       }
 
       print(
-          'VenueStats for ${widget.venueId}: Sessions=$totalSessions, Coins=$totalCoins, AvgScore=$avgHighScore, Players=${uniqueUserIds.length}');
+          'VenueStats for ${widget.venueId}: Sessions=$totalSessions, Coins=$totalCoins, AvgScore=$avgHighScore, Players=${uniqueUserIds.length}, Offers=$numOffers, Redeemed=$itemsRedeemed');
     } catch (e) {
       print('Error getting venue stats: $e');
       if (mounted) {
@@ -204,6 +230,10 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
                   _buildStatRow('Avg. High Score', _metricsData['avgHighScore'].toString()),
                   const SizedBox(height: 12),
                   _buildStatRow('Unique Players', _metricsData['uniquePlayers'].toString()),
+                  const SizedBox(height: 12),
+                  _buildStatRow('Number of Offers', _metricsData['numOffers'].toString()),
+                  const SizedBox(height: 12),
+                  _buildStatRow('Items Redeemed', _metricsData['itemsRedeemed'].toString()),
                 ],
               ),
           ],
