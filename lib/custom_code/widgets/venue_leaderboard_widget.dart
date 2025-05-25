@@ -180,14 +180,19 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(40),
               child: user['photo_url'] != null
-                  ? CachedNetworkImage(
-                      imageUrl: user['photo_url'],
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          const CircularProgressIndicator(),
-                      errorWidget: (context, url, error) =>
-                          Icon(Icons.person, color: widget.textColor, size: 40),
-                    )
+                  ? (() {
+                      print('Debug - Photo URL for user ${user['display_name']}: ${user['photo_url']}');
+                      return CachedNetworkImage(
+                        imageUrl: user['photo_url'],
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                            const CircularProgressIndicator(),
+                        errorWidget: (context, url, error) {
+                          print('Debug - Error loading image for user ${user['display_name']}: $error');
+                          return Icon(Icons.person, color: widget.textColor, size: 40);
+                        },
+                      );
+                    })()
                   : Icon(Icons.person, color: widget.textColor, size: 40),
             ),
           ),
@@ -377,7 +382,7 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
                       index == 1 ? 889 : 
                       1000 - (index * 100), // Descending scores
         'redeemed': 0,
-        'created_time': Timestamp.fromDate(DateTime.now()),
+        'createdTime': Timestamp.fromDate(DateTime.now()),
       },
     );
     
@@ -414,8 +419,12 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
             'coins': 0,
             'high_score': 0,
             'redeemed': 0,
-            'created_time': data['created_time'],
+            'createdTime': data['createdTime'],
           };
+          print('Debug - User data from Firestore for ${userStats[userId]!['display_name']}:');
+          print('  photo_url: ${userStats[userId]!['photo_url']}');
+          print('  Raw data photo_url: ${data['photo_url']}');
+          print('  Raw data photoUrl: ${data['photoUrl']}');
         }
         // Sum sessions
         userStats[userId]!['sessions'] = (userStats[userId]!['sessions'] as int) + (data['sessions'] is int ? data['sessions'] as int : (data['sessions'] is num ? (data['sessions'] as num).toInt() : 0));

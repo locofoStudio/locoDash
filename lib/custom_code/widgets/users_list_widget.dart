@@ -268,7 +268,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
               'coins': 12,
               'high_score': 12,
               'redeemed': 12,
-              'created_time': Timestamp.fromDate(DateTime.now()),
+              'createdTime': Timestamp.fromDate(DateTime.now()),
             });
 
     return ListView(
@@ -312,7 +312,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
             'coins': 0,
             'high_score': 0,
             'redeemed': 0,
-            'created_time': data['created_time'],
+            'createdTime': data['createdTime'],
           };
         }
         // Sum sessions
@@ -382,7 +382,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
       return str;
     }
 
-    // Format the created_time
+    // Format the createdTime
     String formatDate(Timestamp? timestamp) {
       if (timestamp == null) return 'N/A';
       final date = timestamp.toDate();
@@ -391,7 +391,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
 
     return '${escapeField(client['display_name'])},'
         '${escapeField(client['email'])},'
-        '${escapeField(formatDate(client['created_time'] as Timestamp?))},'
+        '${escapeField(formatDate(client['createdTime'] as Timestamp?))},'
         '${escapeField(client['sessions'])},'
         '${escapeField(client['coins'])},'
         '${escapeField(client['high_score'])},'

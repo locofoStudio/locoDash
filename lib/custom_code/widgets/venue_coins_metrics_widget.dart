@@ -125,7 +125,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         final data = doc.data();
         // Double-check venueId matches
         if (data['venueId'] != widget.venueId) continue;
-        final createdTime = (data['created_time'] as Timestamp?)?.toDate();
+        final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
         int coins = 0;
         if (data['coins'] != null && data['coins'] is int) {

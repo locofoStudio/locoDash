@@ -127,7 +127,7 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
             'sessions': 0,
             'coins': 0,
             'high_score': 0,
-            'created_time': data['created_time'],
+            'createdTime': data['createdTime'],
           };
         }
         // Sum sessions

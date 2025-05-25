@@ -188,7 +188,7 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       final query = await FirebaseFirestore.instance
           .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
-          .where('created_time',
+          .where('createdTime',
               isGreaterThanOrEqualTo: Timestamp.fromDate(thirtyDaysAgo))
           .get();
 
@@ -238,8 +238,8 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       // Sort documents by creation time to track first appearances
       final sortedDocs = query.docs.toList()
         ..sort((a, b) {
-          final aTime = (a.data()['created_time'] as Timestamp?)?.toDate() ?? DateTime(2000);
-          final bTime = (b.data()['created_time'] as Timestamp?)?.toDate() ?? DateTime(2000);
+          final aTime = (a.data()['createdTime'] as Timestamp?)?.toDate() ?? DateTime(2000);
+          final bTime = (b.data()['createdTime'] as Timestamp?)?.toDate() ?? DateTime(2000);
           return aTime.compareTo(bTime);
         });
 
@@ -251,7 +251,7 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
         // Skip if user is not verified
         if (!isSignedUpUser.containsKey(userId) || !isSignedUpUser[userId]!) continue;
 
-        final createdTime = (data['created_time'] as Timestamp?)?.toDate();
+        final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
 
         final day = DateFormat('E').format(createdTime);

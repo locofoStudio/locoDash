@@ -119,7 +119,7 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
         final userId = doc.id;
-        final createdTime = (data['created_time'] as Timestamp?)?.toDate();
+        final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
         totalUsers.add(userId);
         if (createdTime.isAfter(startOfMonth)) {

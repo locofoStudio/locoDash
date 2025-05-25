@@ -103,7 +103,7 @@ class _VenueCoinEarnedWidgetState extends State<VenueCoinEarnedWidget> {
       for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
         if (data['venueId'] != widget.venueId) continue;
-        final createdTime = (data['created_time'] as Timestamp?)?.toDate();
+        final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
         int coins = 0;
         if (data['coins'] != null && data['coins'] is int) {
