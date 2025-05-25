@@ -12,7 +12,7 @@ class UserScanResultBottomSheet extends StatefulWidget {
   final bool scannerOpen;
 
   const UserScanResultBottomSheet({
-    Key? key,
+    super.key,
     required this.userData,
     required this.venueData,
     required this.progressData,
@@ -20,7 +20,7 @@ class UserScanResultBottomSheet extends StatefulWidget {
     required this.currentVenueId,
     this.onQrFooterTap,
     this.scannerOpen = false,
-  }) : super(key: key);
+  });
 
   @override
   State<UserScanResultBottomSheet> createState() => _UserScanResultBottomSheetState();
@@ -502,7 +502,7 @@ class CloseIconPainter extends CustomPainter {
 
 // Add a simple QR code icon widget
 class QrCodeIcon extends StatelessWidget {
-  const QrCodeIcon({Key? key}) : super(key: key);
+  const QrCodeIcon({super.key});
 
   @override
   Widget build(BuildContext context) {

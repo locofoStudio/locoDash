@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class QrFooterNavBar extends StatelessWidget {
   final VoidCallback onTap;
-  const QrFooterNavBar({Key? key, required this.onTap}) : super(key: key);
+  const QrFooterNavBar({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class QrFooterNavBar extends StatelessWidget {
 class QrCodeIcon extends StatelessWidget {
   final double size;
   final Color color;
-  const QrCodeIcon({Key? key, this.size = 40, this.color = Colors.black}) : super(key: key);
+  const QrCodeIcon({super.key, this.size = 40, this.color = Colors.black});
 
   @override
   Widget build(BuildContext context) {

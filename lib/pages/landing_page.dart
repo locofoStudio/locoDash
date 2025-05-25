@@ -223,7 +223,7 @@ class _LandingPageState extends State<LandingPage> {
         await Future.delayed(const Duration(milliseconds: 500)); // Add a delay
         _handleScannedQRCode(code);
         html.window.removeEventListener('message', listener);
-        scannerWindow?.close();
+        scannerWindow.close();
       }
     }
     html.window.addEventListener('message', listener);

@@ -12,7 +12,7 @@ class QrCodeFooterBar extends StatelessWidget {
   final VoidCallback? onQrTap;
 
   const QrCodeFooterBar({
-    Key? key,
+    super.key,
     required this.userId,
     required this.venueId,
     this.action = 'loyalty_redeem',
@@ -21,7 +21,7 @@ class QrCodeFooterBar extends StatelessWidget {
     this.iconColor = const Color(0xFF363740),
     this.textColor = Colors.black,
     this.onQrTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

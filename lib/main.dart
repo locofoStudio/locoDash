@@ -4,11 +4,7 @@ import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'pages/landing_page.dart';
 import 'backend/backend.dart';
 import 'backend/firebase_options.dart';
-import 'package:flutter/services.dart';
-import 'dart:html' as html;
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:ui' as ui;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -60,7 +60,7 @@ class Metric extends StatelessWidget {
   final String label;
   final String value;
   final Color valueColor;
-  const Metric({required this.label, required this.value, required this.valueColor});
+  const Metric({super.key, required this.label, required this.value, required this.valueColor});
 
   @override
   Widget build(BuildContext context) {
