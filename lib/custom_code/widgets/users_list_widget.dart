@@ -54,34 +54,32 @@ class _UsersListWidgetState extends State<UsersListWidget> {
         ],
       ),
       padding: const EdgeInsets.all(32),
-      child: widget.showPreviewData
-          ? _buildPreviewList()
-          : FutureBuilder<List<Map<String, dynamic>>>(
-              future: _getVenueClients(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _getVenueClients(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No clients found',
-                      style: TextStyle(color: widget.textColor),
-                    ),
-                  );
-                }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Text(
+                'No clients found',
+                style: TextStyle(color: widget.textColor),
+              ),
+            );
+          }
 
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-                  children: [
-                    ...snapshot.data!.map((client) => _buildUserCard(client)),
-                    const SizedBox(height: 20),
-                    _buildDownloadAllButton(),
-                  ],
-                );
-              },
-            ),
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+            children: [
+              ...snapshot.data!.map((client) => _buildUserCard(client)),
+              const SizedBox(height: 20),
+              _buildDownloadAllButton(),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -254,30 +252,6 @@ class _UsersListWidgetState extends State<UsersListWidget> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildPreviewList() {
-    final previewData = List.generate(
-        4,
-        (index) => {
-              'display_name': 'Arlene McCoy',
-              'email': 'Customer@email.com',
-              'photo_url': null,
-              'sessions': 12,
-              'coins': 12,
-              'high_score': 12,
-              'redeemed': 12,
-              'createdTime': Timestamp.fromDate(DateTime.now()),
-            });
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-      children: [
-        ...previewData.map((client) => _buildUserCard(client)),
-        const SizedBox(height: 20),
-        _buildDownloadAllButton(),
-      ],
     );
   }
 

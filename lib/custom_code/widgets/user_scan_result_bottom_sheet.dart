@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math';
 
 class UserScanResultBottomSheet extends StatefulWidget {
   final Map<String, dynamic> userData;

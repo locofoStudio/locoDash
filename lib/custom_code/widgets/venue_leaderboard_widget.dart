@@ -52,28 +52,26 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
         ],
       ),
       padding: const EdgeInsets.all(32),
-      child: widget.showPreviewData
-          ? _buildPreviewLeaderboard()
-          : FutureBuilder<List<Map<String, dynamic>>>(
-              future: _getVenueLeaderboard(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _getVenueLeaderboard(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No users found for leaderboard',
-                      style: TextStyle(color: widget.textColor),
-                    ),
-                  );
-                }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Text(
+                'No users found for leaderboard',
+                style: TextStyle(color: widget.textColor),
+              ),
+            );
+          }
 
-                final leaderboardData = snapshot.data!;
-                return _buildLeaderboard(leaderboardData);
-              },
-            ),
+          final leaderboardData = snapshot.data!;
+          return _buildLeaderboard(leaderboardData);
+        },
+      ),
     );
   }
 
@@ -362,31 +360,6 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
         ),
       ],
     );
-  }
-
-  Widget _buildPreviewLeaderboard() {
-    // Generate preview data with fake users
-    final previewUsers = List.generate(
-      7,
-      (index) => {
-        'display_name': index == 0 ? 'Daniel Garcia' : 
-                        index == 1 ? 'Jacob Martin' : 
-                        'Arlene McCoy',
-        'email': index == 0 ? 'daniel.garcia@example.com' : 
-                 index == 1 ? 'jacob.martin@example.com' : 
-                 'customer@email.com',
-        'photo_url': null,
-        'sessions': 12 + index * 2,
-        'coins': 300 + (index * 50),
-        'high_score': index == 0 ? 780 : 
-                      index == 1 ? 889 : 
-                      1000 - (index * 100), // Descending scores
-        'redeemed': 0,
-        'createdTime': Timestamp.fromDate(DateTime.now()),
-      },
-    );
-    
-    return _buildLeaderboard(previewUsers);
   }
 
   Future<List<Map<String, dynamic>>> _getVenueLeaderboard() async {

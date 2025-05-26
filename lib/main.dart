@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'pages/landing_page.dart';
+import 'pages/login_page.dart';
 import 'backend/backend.dart';
 import 'backend/firebase_options.dart';
+import 'services/auth_service.dart';
 // ignore: avoid_web_libraries_in_flutter
 
 void main() async {
@@ -42,12 +45,9 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Roboto Flex',
       ),
       debugShowCheckedModeBanner: false,
-      home: Builder(
-          builder: (context) {
-            // Initialize with a simple error handler
-            return const LandingPage(venueId: 'demo');
-          },
-        ),
+      home: firebaseInitialized
+          ? const AuthWrapper()
+          : const Center(child: Text('Error initializing Firebase')),
       routes: {
         'UsersPageMobile': (context) => const Scaffold(
           backgroundColor: Color(0xFF1F2029),
@@ -64,5 +64,56 @@ class MyApp extends StatelessWidget {
         ),
       },
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final AuthService _authService = AuthService();
+  String? _selectedVenueId;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: _authService.authStateChanges,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasData) {
+          // User is signed in
+          if (_selectedVenueId == null) {
+            // Load user's venues and select the first one
+            _loadUserVenues();
+            return const Center(child: CircularProgressIndicator());
+          }
+          return LandingPage(venueId: _selectedVenueId!);
+        }
+        
+        // User is not signed in
+        return const LoginPage();
+      },
+    );
+  }
+
+  Future<void> _loadUserVenues() async {
+    try {
+      final venues = await _authService.getUserVenues();
+      if (venues.isNotEmpty) {
+        setState(() {
+          _selectedVenueId = venues[0];
+        });
+      }
+    } catch (e) {
+      // Handle error - maybe show error message or sign out
+      await _authService.signOut();
+    }
   }
 }

@@ -66,20 +66,8 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
   }
 
   Future<void> _loadUserMetrics() async {
-    if (widget.showPreviewData) {
-      setState(() {
-        _userMetrics = {
-          'monthly': 568,
-          'weekly': 154,
-          'daily': 8,
-          'total': 1024,
-        };
-        _isLoading = false;
-      });
-      return;
-    }
-
     if (widget.venueId.isEmpty) {
+      print('VenueUserMetricsWidget: Empty venueId, returning zero metrics');
       setState(() {
         _userMetrics = {
           'monthly': 0,
@@ -97,19 +85,20 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
     });
 
     try {
-      print('Loading user metrics for venue: ${widget.venueId}');
+      print('VenueUserMetricsWidget: Loading user metrics for venue: ${widget.venueId}');
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day);
       final startOfWeek = now.subtract(const Duration(days: 7));
       final startOfMonth = now.subtract(const Duration(days: 30));
 
+      print('VenueUserMetricsWidget: Querying userVenueProgress collection...');
       // Query userVenueProgress for this venue
       final userVenueProgressQuery = await FirebaseFirestore.instance
           .collection('userVenueProgress')
           .where('venueId', isEqualTo: widget.venueId)
           .get();
 
-      print('Found ${userVenueProgressQuery.docs.length} userVenueProgress documents');
+      print('VenueUserMetricsWidget: Found ${userVenueProgressQuery.docs.length} userVenueProgress documents');
 
       Set<String> monthlyUsers = {};
       Set<String> weeklyUsers = {};
@@ -119,17 +108,27 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
         final userId = doc.id;
+        print('VenueUserMetricsWidget: Processing document $userId');
+        print('VenueUserMetricsWidget: Document data: $data');
+        
         final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
-        if (createdTime == null) continue;
+        if (createdTime == null) {
+          print('VenueUserMetricsWidget: No createdTime for user $userId, skipping');
+          continue;
+        }
+        
         totalUsers.add(userId);
         if (createdTime.isAfter(startOfMonth)) {
           monthlyUsers.add(userId);
+          print('VenueUserMetricsWidget: User $userId added to monthly users');
         }
         if (createdTime.isAfter(startOfWeek)) {
           weeklyUsers.add(userId);
+          print('VenueUserMetricsWidget: User $userId added to weekly users');
         }
         if (createdTime.isAfter(startOfDay)) {
           dailyUsers.add(userId);
+          print('VenueUserMetricsWidget: User $userId added to daily users');
         }
       }
 
@@ -145,10 +144,9 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
         });
       }
 
-      print(
-          'Updated user metrics (userVenueProgress) - Monthly: ${monthlyUsers.length}, Weekly: ${weeklyUsers.length}, Daily: ${dailyUsers.length}, Total: ${totalUsers.length}');
+      print('VenueUserMetricsWidget: Updated metrics - Monthly: ${monthlyUsers.length}, Weekly: ${weeklyUsers.length}, Daily: ${dailyUsers.length}, Total: ${totalUsers.length}');
     } catch (e) {
-      print('Error loading user metrics: $e');
+      print('VenueUserMetricsWidget: Error loading user metrics: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;

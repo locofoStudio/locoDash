@@ -71,20 +71,6 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
   }
 
   Future<void> _loadMetricsData() async {
-    if (widget.showPreviewData) {
-      setState(() {
-        _metricsData = {
-          'monthly': 568,
-          'weekly': 154,
-          'daily': 32,
-          'totalSpent': 500.0,
-          'totalCoins': 5000,
-        };
-        _isLoading = false;
-      });
-      return;
-    }
-
     if (widget.venueId.isEmpty) {
       setState(() {
         _metricsData = {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:barcode_widget/barcode_widget.dart';
 
 class QrCodeFooterBar extends StatelessWidget {
   final String userId;

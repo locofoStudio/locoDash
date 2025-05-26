@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '/custom_code/widgets/venue_user_metrics_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '/custom_code/widgets/venue_coins_metrics_widget.dart';
 import '/custom_code/widgets/venue_stats_widget.dart';
 import '/custom_code/widgets/venue_activity_chart_widget.dart';
@@ -9,12 +10,11 @@ import '/custom_code/widgets/users_list_widget.dart';
 import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
 import 'dart:html' as html;
-import 'dart:convert';
 import '/custom_code/widgets/user_scan_result_bottom_sheet.dart';
-import '../widgets/qr_scanner_widget.dart';
 import '/custom_code/widgets/qr_code_footer_bar.dart';
 import '/custom_code/widgets/venue_coin_earned_widget.dart';
 import '/custom_code/widgets/loyalty_stats_widget.dart';
+import '../services/auth_service.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -27,6 +27,7 @@ class LandingPage extends StatefulWidget {
 
 class _LandingPageState extends State<LandingPage> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  final _authService = AuthService();
   int _selectedIndex = 0;
   String? _selectedVenue;
   List<String> _venueNames = [];
@@ -61,70 +62,64 @@ class _LandingPageState extends State<LandingPage> {
     });
 
     try {
-      print('Loading venues from venueProgress collection...');
-      
-      // Get unique venueIds from venueProgress collection
-      final venueProgressQuery = await FirebaseFirestore.instance
-          .collectionGroup('venueProgress')
-          .get();
-      
-      print('Found ${venueProgressQuery.docs.length} venueProgress documents');
-      
-      // Extract unique venueIds
-      Set<String> uniqueVenueIds = {};
-      
-      for (var doc in venueProgressQuery.docs) {
-        try {
-          final data = doc.data();
-          if (data.containsKey('venueId') && data['venueId'] != null) {
-            String venueId = data['venueId'] as String;
-            uniqueVenueIds.add(venueId);
-          } else {
-            debugPrint('WARNING: Document ${doc.id} missing venueId field');
-          }
-        } catch (docError) {
-          // Per-document error handling for more precise debugging
-          debugPrint('Error processing document ${doc.id}: $docError');
-          // Continue processing other documents
-        }
+      // Get the current user's venues from venueOwners collection
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently signed in');
       }
-      
-      print('Found ${uniqueVenueIds.length} unique venueIds: ${uniqueVenueIds.toList()}');
-      
-      // Convert to lists for the dropdown
-      List<String> venueIds = uniqueVenueIds.toList();
-      
-      // Sort alphabetically but ensure baked and demo are at the beginning
-      venueIds.sort((a, b) {
-        if (a.toLowerCase() == 'baked') return -1;
-        if (b.toLowerCase() == 'baked') return 1;
-        if (a.toLowerCase() == 'demo') return -1;
-        if (b.toLowerCase() == 'demo') return 1;
-        return a.compareTo(b);
-      });
-      
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('venueOwners')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        throw Exception('No venues found for this account');
+      }
+
+      final venues = userDoc.data()?['venues'] as List<dynamic>;
+      final venueIds = venues.map((venue) => venue.toString()).toList();
+
+      if (venueIds.isEmpty) {
+        throw Exception('No venues available for this account');
+      }
+
       setState(() {
         _venueIds = venueIds;
         _venueNames = venueIds; // Using venueId as the display name
         _loadingVenues = false;
         
-        // Select first venue if none selected
-        if (_selectedVenue == null || _selectedVenue!.isEmpty) {
+        // Select first venue if none selected or if selected venue is not in the list
+        if (_selectedVenue == null || _selectedVenue!.isEmpty || !venueIds.contains(_selectedVenue)) {
           _selectedVenue = venueIds.first;
         }
       });
       
       print('Venues loaded. Current selected venue: $_selectedVenue');
       print('Available venues: $_venueIds');
+
+      // Debug: Check userVenueProgress data for the selected venue
+      if (_selectedVenue != null) {
+        final progressQuery = await FirebaseFirestore.instance
+            .collection('userVenueProgress')
+            .where('venueId', isEqualTo: _selectedVenue)
+            .get();
+        
+        print('Found ${progressQuery.docs.length} userVenueProgress entries for venue $_selectedVenue');
+        for (var doc in progressQuery.docs) {
+          print('DocId: ${doc.id}');
+          print('Data: ${doc.data()}');
+          print('---');
+        }
+      }
       
     } catch (e) {
       print('Error loading venues: $e');
       setState(() {
-        // Fallback to default venues if Firebase query fails
-        _venueNames = ['baked', 'demo'];
-        _venueIds = ['baked', 'demo'];
-        _selectedVenue = 'baked';
         _loadingVenues = false;
+        _venueIds = [];
+        _venueNames = [];
+        _selectedVenue = null;
       });
     }
   }
@@ -474,9 +469,6 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Widget _buildVenueSelector() {
-    // Define a simple list of venue options
-    final List<String> venueOptions = ['baked', 'demo'];
-    
     return Container(
       height: 30,
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -496,55 +488,57 @@ class _LandingPageState extends State<LandingPage> {
                 ),
               ),
             )
-          : DropdownButton<String>(
-              value: _selectedVenue ?? venueOptions.first,
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-              iconSize: 24,
-              elevation: 16,
-              dropdownColor: const Color(0xFF1F2029),
-              underline: Container(height: 0),  // Remove underline
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontFamily: 'Roboto Flex',
-              ),
-              hint: const Text(
-                'Venue',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontFamily: 'Roboto Flex',
-                ),
-              ),
-              onChanged: (String? newValue) {
-                print("Selected venue: $newValue");
-                setState(() {
-                  _selectedVenue = newValue;
-                  // Show brief loading animation
-                  _loadingVenues = true;
-                });
-                
-                // Reset loading state after a short delay to show feedback
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  if (mounted) {
-                    setState(() {
-                      _loadingVenues = false;
-                    });
-                  }
-                });
-              },
-              items: venueOptions.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Text(
-                      value.substring(0, 1).toUpperCase() + value.substring(1),
-                    ),
+          : _venueIds.isEmpty
+              ? const Text(
+                  'No venues available',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Roboto Flex',
                   ),
-                );
-              }).toList(),
-            ),
+                )
+              : DropdownButton<String>(
+                  value: _selectedVenue ?? _venueIds.first,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  iconSize: 24,
+                  elevation: 16,
+                  dropdownColor: const Color(0xFF1F2029),
+                  underline: Container(height: 0),  // Remove underline
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Roboto Flex',
+                  ),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedVenue = newValue;
+                        // Show brief loading animation
+                        _loadingVenues = true;
+                      });
+                      
+                      // Reset loading state after a short delay to show feedback
+                      Future.delayed(const Duration(milliseconds: 300), () {
+                        if (mounted) {
+                          setState(() {
+                            _loadingVenues = false;
+                          });
+                        }
+                      });
+                    }
+                  },
+                  items: _venueIds.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        child: Text(
+                          _getVenueName(value),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
     );
   }
 
@@ -593,37 +587,46 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Widget _buildOverviewTab() {
+    if (_selectedVenue == null) {
+      return const Center(
+        child: Text(
+          'No venue selected',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Column(
         children: [
           VenueUserMetricsWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: false,
           ),
           const SizedBox(height: 14),
           VenueCoinEarnedWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: false,
           ),
           const SizedBox(height: 14),
           VenueCoinsMetricsWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: false,
           ),
           const SizedBox(height: 14),
           VenueStatsWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: false,
           ),
           const SizedBox(height: 14),
           VenueActivityChartWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: true, // Use preview data for reliable display
           ),
           const SizedBox(height: 14),
           VenueClientsWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: false, // Use real data from Firebase
             onNavigateToUsersTab: () {
               setState(() {
@@ -634,24 +637,33 @@ class _LandingPageState extends State<LandingPage> {
           const SizedBox(height: 14),
           _buildTopRewardsWidget(),
           const SizedBox(height: 14),
-          TopPlayersCard(venueId: _selectedVenue ?? ''),
+          TopPlayersCard(venueId: _selectedVenue!),
         ],
       ),
     );
   }
 
   Widget _buildUsersTab() {
+    if (_selectedVenue == null) {
+      return const Center(
+        child: Text(
+          'No venue selected',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Column(
         children: [
           VenueUserMetricsWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: false,
           ),
           const SizedBox(height: 14),
           UsersListWidget(
-            venueId: _selectedVenue ?? '',
+            venueId: _selectedVenue!,
             showPreviewData: false,
             width: double.infinity,
             height: 700,
@@ -663,10 +675,19 @@ class _LandingPageState extends State<LandingPage> {
 
   // Add new Leaderboard tab method
   Widget _buildLeaderboardTab() {
+    if (_selectedVenue == null) {
+      return const Center(
+        child: Text(
+          'No venue selected',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(14),
       child: VenueLeaderboardWidget(
-        venueId: _selectedVenue ?? '',
+        venueId: _selectedVenue!,
         showPreviewData: false,
         width: double.infinity,
         height: 700,

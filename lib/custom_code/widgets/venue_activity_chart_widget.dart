@@ -83,33 +83,6 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
   }
 
   Future<void> _loadActivityData() async {
-    if (widget.showPreviewData) {
-      setState(() {
-        _sessionsByDay = {
-          'Mon': 5,
-          'Tue': 8,
-          'Wed': 2,
-          'Thu': 7,
-          'Fri': 12,
-          'Sat': 4,
-          'Sun': 6
-        };
-        
-        _usersByDay = {
-          'Mon': {'user1', 'user2'},
-          'Tue': {'user1', 'user3', 'user4'},
-          'Wed': {'user2'},
-          'Thu': {'user1', 'user2', 'user3'},
-          'Fri': {'user1', 'user2', 'user3', 'user4'},
-          'Sat': {'user1', 'user2'},
-          'Sun': {'user3', 'user4', 'user5'}
-        };
-        
-        _isLoading = false;
-      });
-      return;
-    }
-
     // When no venue, use sample data
     if (widget.venueId.isEmpty) {
       setState(() {
@@ -164,9 +137,6 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
 
     try {
       print('Loading activity data for venue: ${widget.venueId}');
-      
-      // FORCE USING SAMPLE DATA FOR NOW - REMOVE THIS LINE WHEN REAL DATA WORKS
-      throw Exception("Using sample data intentionally");
       
       final now = DateTime.now();
       final thirtyDaysAgo = now.subtract(const Duration(days: 30));
@@ -243,40 +213,49 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
           return aTime.compareTo(bTime);
         });
 
-      // Second pass: Process activity data for verified users
+      // Second pass: Process activity data for verified users and anonymous users
+      // Track anonymous users by day
+      Map<String, Set<String>> anonymousUsersByDay = {
+        'Mon': {}, 'Tue': {}, 'Wed': {}, 'Thu': {}, 'Fri': {}, 'Sat': {}, 'Sun': {}
+      };
       for (var doc in sortedDocs) {
         final data = doc.data();
         final userId = doc.id;
-
-        // Skip if user is not verified
-        if (!isSignedUpUser.containsKey(userId) || !isSignedUpUser[userId]!) continue;
 
         final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
 
         final day = DateFormat('E').format(createdTime);
-        
-        // Check if this is a new user (first time we're seeing them)
-        if (!firstUserAppearance.containsKey(userId)) {
-          firstUserAppearance[userId] = createdTime;
-          newUsersByDay[day]!.add(userId);
-        }
-        
-        // Add sessions to totalSessionsByDay - explicitly check for the sessions field
-        int sessions = 0;
-        if (data.containsKey('sessions')) {
-          sessions = data['sessions'] as int? ?? 0;
-          // Debug info
-          if (sessions > 0) {
-            docsWithSessions++;
-            totalSessionsFound += sessions;
-            print('User $userId on $day has $sessions sessions');
+
+        // If user is signed up (active)
+        if (isSignedUpUser.containsKey(userId) && isSignedUpUser[userId]!) {
+          // Check if this is a new user (first time we're seeing them)
+          if (!firstUserAppearance.containsKey(userId)) {
+            firstUserAppearance[userId] = createdTime;
+            newUsersByDay[day]!.add(userId);
           }
-        }
-        
-        // Add sessions to totalSessionsByDay
-        if (sessions > 0) {
-          totalSessionsByDay[day] = totalSessionsByDay[day]! + sessions;
+          // Add sessions to totalSessionsByDay - explicitly check for the sessions field
+          int sessions = 0;
+          if (data.containsKey('sessions')) {
+            sessions = data['sessions'] as int? ?? 0;
+            // Debug info
+            if (sessions > 0) {
+              docsWithSessions++;
+              totalSessionsFound += sessions;
+              print('User $userId on $day has $sessions sessions');
+            }
+          }
+          // Add sessions to totalSessionsByDay
+          if (sessions > 0) {
+            totalSessionsByDay[day] = totalSessionsByDay[day]! + sessions;
+          }
+        } else {
+          // Anonymous user (not in users collection)
+          // Only count them on their first appearance
+          if (!firstUserAppearance.containsKey(userId)) {
+            firstUserAppearance[userId] = createdTime;
+            anonymousUsersByDay[day]!.add(userId);
+          }
         }
       }
 
@@ -287,14 +266,12 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       
       for (final day in totalSessionsByDay.keys) {
         final dayCount = dayCountInPeriod[day] ?? 1; // Avoid division by zero
-        
         // Average sessions (rounded to nearest integer)
         final avgSessions = (totalSessionsByDay[day] ?? 0) / dayCount;
         avgSessionsByDay[day] = avgSessions.round();
-        
         // Keep the new users set as is - we're already counting unique new users per day
         avgNewUsersByDay[day] = newUsersByDay[day]?.length ?? 0;
-        avgAnonymousUsersByDay[day] = 0; // Assuming anonymous users are not available in the query
+        avgAnonymousUsersByDay[day] = anonymousUsersByDay[day]?.length ?? 0;
       }
 
       // Ensure we have at least some data to display

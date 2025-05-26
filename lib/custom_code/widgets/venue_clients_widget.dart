@@ -54,39 +54,6 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
   }
 
   Future<void> _loadClients() async {
-    if (widget.showPreviewData) {
-      setState(() {
-        _clients = [
-          {
-            'display_name': 'Daniel Garcia',
-            'email': 'daniel.garcia@example.com',
-            'sessions': 20,
-            'photo_url': null,
-          },
-          {
-            'display_name': 'Jacob Martin',
-            'email': 'jacob.martin@example.com',
-            'sessions': 19,
-            'photo_url': null,
-          },
-          {
-            'display_name': 'Michael Brown',
-            'email': 'michael.brown@example.com',
-            'sessions': 18,
-            'photo_url': null,
-          },
-          {
-            'display_name': 'James Taylor',
-            'email': 'james.taylor@example.com',
-            'sessions': 18,
-            'photo_url': null,
-          },
-        ];
-        _isLoading = false;
-      });
-      return;
-    }
-
     if (widget.venueId.isEmpty) {
       setState(() {
         _clients = [];
@@ -162,38 +129,6 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
       }
     } catch (e) {
       print('Error getting venue clients: $e');
-      if (mounted) {
-        setState(() {
-          // Use preview data as fallback
-          _clients = [
-            {
-              'display_name': 'Daniel Garcia',
-              'email': 'daniel.garcia@example.com',
-              'sessions': 20,
-              'photo_url': null,
-            },
-            {
-              'display_name': 'Jacob Martin',
-              'email': 'jacob.martin@example.com',
-              'sessions': 19,
-              'photo_url': null,
-            },
-            {
-              'display_name': 'Michael Brown',
-              'email': 'michael.brown@example.com',
-              'sessions': 18,
-              'photo_url': null,
-            },
-            {
-              'display_name': 'James Taylor',
-              'email': 'james.taylor@example.com',
-              'sessions': 18,
-              'photo_url': null,
-            },
-          ];
-          _isLoading = false;
-        });
-      }
     }
   }
 
