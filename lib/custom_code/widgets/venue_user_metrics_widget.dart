@@ -252,7 +252,10 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
 
     // Determine font size based on screen width
     final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
-    final valueFontSize = isLargeScreen ? 36.0 : 18.0;
+    final isTablet = ResponsiveHelper.isTablet(context);
+    final valueFontSize = isLargeScreen 
+        ? (isTablet ? 20.0 : 36.0) 
+        : 18.0;
 
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),

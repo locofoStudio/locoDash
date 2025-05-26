@@ -245,7 +245,10 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
   Widget _buildStatRow(String label, String value) {
     // Determine font size based on screen width
     final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
-    final valueFontSize = isLargeScreen ? 24.0 : 18.0;
+    final isTablet = ResponsiveHelper.isTablet(context);
+    final valueFontSize = isLargeScreen 
+        ? (isTablet ? 20.0 : 24.0) 
+        : 18.0;
     
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
