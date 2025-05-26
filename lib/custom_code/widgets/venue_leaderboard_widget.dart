@@ -86,14 +86,45 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
       child: Column(
         children: [
           // Podium section
-          _buildPodium(podiumUsers),
+          Builder(
+            builder: (context) {
+              final width = MediaQuery.of(context).size.width;
+              final isMobile = width < 600;
+              
+              if (isMobile) {
+                // Mobile view: Use card layout for all users
+                return Column(
+                  children: users.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final user = entry.value;
+                    return _buildUserRankCard(user, index + 1);
+                  }).toList(),
+                );
+              }
+
+              // Desktop view: Use podium layout for top 3
+              return _buildPodium(podiumUsers);
+            },
+          ),
           const SizedBox(height: 16),
-          // Remaining users list
-          ...listUsers.asMap().entries.map((entry) {
-            final index = entry.key + 4; // Start from position 4
-            final user = entry.value;
-            return _buildUserRankCard(user, index);
-          }),
+          // Remaining users list (only for desktop)
+          Builder(
+            builder: (context) {
+              final width = MediaQuery.of(context).size.width;
+              final isMobile = width < 600;
+              
+              if (!isMobile) {
+                return Column(
+                  children: listUsers.asMap().entries.map((entry) {
+                    final index = entry.key + 4; // Start from position 4
+                    final user = entry.value;
+                    return _buildUserRankCard(user, index);
+                  }).toList(),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
     );

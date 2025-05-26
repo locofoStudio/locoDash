@@ -99,46 +99,131 @@ class TopPlayersCard extends StatelessWidget {
                 builder: (context) {
                   final width = MediaQuery.of(context).size.width;
                   final isMobile = width < 600;
+                  
+                  if (isMobile) {
+                    // Mobile view: Use card layout
+                    return Column(
+                      children: podium.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final user = entry.value;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF363740),
+                            borderRadius: BorderRadius.circular(31),
+                            boxShadow: [
+                              BoxShadow(
+                                offset: const Offset(-4, 5),
+                                color: Colors.black.withOpacity(0.25),
+                                spreadRadius: 0,
+                                blurRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              // Position number
+                              Container(
+                                width: 40,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  (index + 1).toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Roboto Flex',
+                                    fontSize: 24.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              // User details
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          // Profile Image
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(20),
+                                              child: user['photo_url'] != null
+                                                  ? Image.network(
+                                                      user['photo_url'],
+                                                      fit: BoxFit.cover,
+                                                      loadingBuilder: (context, child, loadingProgress) {
+                                                        if (loadingProgress == null) return child;
+                                                        return const CircularProgressIndicator();
+                                                      },
+                                                      errorBuilder: (context, error, stackTrace) =>
+                                                          const Icon(Icons.person, color: Colors.white, size: 40),
+                                                    )
+                                                  : const Icon(Icons.person, color: Colors.white, size: 40),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Name
+                                          Expanded(
+                                            child: Text(
+                                              user['display_name'] ?? 'Unknown',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontFamily: 'Roboto Flex',
+                                                fontSize: 16.0,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      // Stats Row
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          _buildStat('High Score', user['high_score'] ?? 0, const Color(0xFFC5C352)),
+                                          _buildStat('Visits', user['sessions'] ?? 0, const Color(0xFF6FA6A0)),
+                                          _buildStat('Coins', user['coins'] ?? 0, const Color(0xFFFF8B64)),
+                                          _buildStat('Redeemed', user['redeemed'] ?? 0, const Color(0xFFFF6464)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }
+
+                  // Desktop view: Use podium layout
                   final children = <Widget>[
                     if (podium.length > 1)
-                      isMobile
-                        ? _buildPodiumPosition(podium[1], 2, 120, const Color(0xFF6FA6A0))
-                        : Expanded(child: _buildPodiumPosition(podium[1], 2, 120, const Color(0xFF6FA6A0))),
+                      Expanded(child: _buildPodiumPosition(podium[1], 2, 120, const Color(0xFF6FA6A0))),
                     if (podium.length > 1) const SizedBox(width: 12),
                     if (podium.isNotEmpty)
-                      isMobile
-                        ? _buildPodiumPosition(podium[0], 1, 150, const Color(0xFFFFFFFF))
-                        : Expanded(child: _buildPodiumPosition(podium[0], 1, 150, const Color(0xFFFFFFFF))),
+                      Expanded(child: _buildPodiumPosition(podium[0], 1, 150, const Color(0xFFFFFFFF))),
                     if (podium.length > 2) const SizedBox(width: 12),
                     if (podium.length > 2)
-                      isMobile
-                        ? _buildPodiumPosition(podium[2], 3, 100, const Color(0xFFFFFFFF))
-                        : Expanded(child: _buildPodiumPosition(podium[2], 3, 100, const Color(0xFFFFFFFF))),
+                      Expanded(child: _buildPodiumPosition(podium[2], 3, 100, const Color(0xFFFFFFFF))),
                   ];
                   return SizedBox(
                     height: 230,
-                    child: isMobile
-                      ? Center(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: children,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: children,
-                          ),
-                        ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: children,
+                    ),
                   );
                 },
               ),
@@ -220,6 +305,38 @@ class TopPlayersCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStat(String label, int value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontFamily: 'Roboto Flex',
+            fontSize: 12.0,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2B2B2B),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            value.toString().padLeft(3, '0'),
+            style: TextStyle(
+              color: valueColor,
+              fontFamily: 'Roboto Flex',
+              fontSize: 12.0,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

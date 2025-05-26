@@ -222,7 +222,7 @@ class _VenueCoinEarnedWidgetState extends State<VenueCoinEarnedWidget> {
       );
     }
     final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
-    final valueFontSize = isLargeScreen ? 36.0 : 48.0;
+    final valueFontSize = isLargeScreen ? 36.0 : 18.0;
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
       child: Column(
