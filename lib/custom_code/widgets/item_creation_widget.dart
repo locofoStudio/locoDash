@@ -24,6 +24,8 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
   List<String> _venues = ['Select Venue'];
   String? _currentUserId;
   Map<String, bool> _venueOwnership = {};
+  String? _documentId;
+  bool _isUsingSuggestedPrice = true;
 
   @override
   void initState() {
@@ -35,6 +37,20 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
       _offerPriceController.text = widget.initialData!['OfferPrice']?.toString() ?? '';
       _offerInfoController.text = widget.initialData!['OfferInfo'] ?? '';
       _selectedVenue = widget.initialData!['venueId'] ?? 'Select Venue';
+      _documentId = widget.initialData!['id'];
+      _selectedFilePath = widget.initialData!['OfferPhoto'];
+      _isUsingSuggestedPrice = false; // When editing, we don't use suggested price
+    }
+
+    // Add listener to original price controller
+    _originalPriceController.addListener(_updateSuggestedPrice);
+  }
+
+  void _updateSuggestedPrice() {
+    if (_isUsingSuggestedPrice) {
+      final originalPrice = double.tryParse(_originalPriceController.text) ?? 0.0;
+      final suggestedPrice = originalPrice * 11;
+      _offerPriceController.text = suggestedPrice.toStringAsFixed(2);
     }
   }
 
@@ -155,24 +171,36 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
     });
 
     try {
-      // Create the offer document
-      await FirebaseFirestore.instance.collection('offers').add({
+      final offerData = {
         'OfferName': _offerNameController.text,
         'originalPrice': double.tryParse(_originalPriceController.text) ?? 0.0,
         'OfferPrice': double.tryParse(_offerPriceController.text) ?? 0.0,
         'OfferInfo': _offerInfoController.text,
         'venueId': venueId,
         'OfferPhoto': _selectedFilePath,
-        'createdAt': FieldValue.serverTimestamp(),
         'createdBy': _currentUserId,
-      });
+      };
+
+      if (_documentId != null) {
+        // Update existing document
+        await FirebaseFirestore.instance
+            .collection('offers')
+            .doc(_documentId)
+            .update(offerData);
+      } else {
+        // Create new document
+        offerData['createdAt'] = FieldValue.serverTimestamp();
+        await FirebaseFirestore.instance
+            .collection('offers')
+            .add(offerData);
+      }
 
       if (widget.onCancel != null) {
         widget.onCancel!();
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating offer: $e')),
+        SnackBar(content: Text('Error ${_documentId != null ? 'updating' : 'creating'} offer: $e')),
       );
     } finally {
       setState(() {
@@ -183,6 +211,7 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
 
   @override
   void dispose() {
+    _originalPriceController.removeListener(_updateSuggestedPrice);
     _offerNameController.dispose();
     _originalPriceController.dispose();
     _offerPriceController.dispose();
@@ -209,9 +238,9 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Item',
-                style: TextStyle(
+              Text(
+                _documentId != null ? 'Edit Item' : 'Add Item',
+                style: const TextStyle(
                   color: Color(0xFFFCFDFF),
                   fontSize: 20,
                 ),
@@ -294,29 +323,62 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    TextField(
-                      controller: _offerPriceController,
-                      style: const TextStyle(color: Color(0xFFC5C352)),
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'Offer Price',
-                        hintStyle: const TextStyle(color: Color(0xFFC5C352)),
-                        filled: true,
-                        fillColor: Colors.transparent,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9),
-                          borderSide: const BorderSide(color: Color(0xFF525E5D)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _offerPriceController,
+                            style: const TextStyle(color: Color(0xFFC5C352)),
+                            keyboardType: TextInputType.number,
+                            onTap: () {
+                              setState(() {
+                                _isUsingSuggestedPrice = false;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Offer Price',
+                              hintStyle: const TextStyle(color: Color(0xFFC5C352)),
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(9),
+                                borderSide: const BorderSide(color: Color(0xFF525E5D)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(9),
+                                borderSide: const BorderSide(color: Color(0xFF525E5D)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(9),
+                                borderSide: const BorderSide(color: Color(0xFF525E5D)),
+                              ),
+                            ),
+                          ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9),
-                          borderSide: const BorderSide(color: Color(0xFF525E5D)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9),
-                          borderSide: const BorderSide(color: Color(0xFF525E5D)),
+                        if (!_isUsingSuggestedPrice)
+                          IconButton(
+                            icon: const Icon(Icons.refresh, color: Color(0xFFC5C352)),
+                            onPressed: () {
+                              setState(() {
+                                _isUsingSuggestedPrice = true;
+                                _updateSuggestedPrice();
+                              });
+                            },
+                            tooltip: 'Use suggested price',
+                          ),
+                      ],
+                    ),
+                    if (_isUsingSuggestedPrice)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          'Suggested price (Original Price × 11)',
+                          style: TextStyle(
+                            color: Color(0xFFC5C352).withOpacity(0.7),
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -402,9 +464,9 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
                             valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB8C5CD)),
                           ),
                         )
-                      : const Text(
-                          'Add item',
-                          style: TextStyle(
+                      : Text(
+                          _documentId != null ? 'Update item' : 'Add item',
+                          style: const TextStyle(
                             color: Color(0xFFB8C5CD),
                             fontSize: 14,
                           ),
