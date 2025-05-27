@@ -70,12 +70,54 @@ class _UsersListWidgetState extends State<UsersListWidget> {
             );
           }
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...snapshot.data!.map((client) => _buildUserCard(client)),
+              // Title and Download All button row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Users',
+                    style: TextStyle(
+                      fontFamily: 'Roboto Flex',
+                      color: widget.textColor,
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: widget.textColor.withOpacity(0.2),
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: TextButton(
+                      onPressed: () => _downloadAllClientsData(snapshot.data!),
+                      child: Text(
+                        'Download all',
+                        style: TextStyle(
+                          color: widget.textColor,
+                          fontFamily: 'Roboto Flex',
+                          fontSize: 12.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
-              _buildDownloadAllButton(),
+              // Users list
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+                  children: [
+                    ...snapshot.data!.map((client) => _buildUserCard(client)),
+                  ],
+                ),
+              ),
             ],
           );
         },
@@ -229,30 +271,70 @@ class _UsersListWidgetState extends State<UsersListWidget> {
     );
   }
 
-  Widget _buildDownloadAllButton() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: widget.textColor.withOpacity(0.2),
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: InkWell(
-          onTap: _downloadAllClientsData,
-          child: Text(
-            'Download all',
-            style: TextStyle(
-              color: widget.textColor,
-              fontFamily: 'Roboto Flex',
-              fontSize: 12.0,
-            ),
-          ),
-        ),
-      ),
-    );
+  void _downloadClientData(Map<String, dynamic> client) {
+    final csvData = _convertClientToCSV(client);
+    final fileName =
+        '${client['display_name'].toString().replaceAll(' ', '_')}_data.csv';
+    _downloadCSV(csvData, fileName);
+  }
+
+  void _downloadAllClientsData(List<Map<String, dynamic>> clients) async {
+    try {
+      if (clients.isEmpty) return;
+
+      // Create CSV header
+      String csvData = 'Name,Email,Created Date,Visits,Coins,High Score,Redeemed\n';
+
+      // Add data for each client
+      for (var client in clients) {
+        csvData += _convertClientToCSV(client);
+      }
+
+      _downloadCSV(csvData, 'all_clients_data.csv');
+    } catch (e) {
+      print('Error downloading all clients data: $e');
+    }
+  }
+
+  String _convertClientToCSV(Map<String, dynamic> client) {
+    // Escape special characters and wrap fields in quotes if they contain commas
+    String escapeField(dynamic value) {
+      String str = value.toString();
+      if (str.contains(',') || str.contains('"') || str.contains('\n')) {
+        return '"${str.replaceAll('"', '""')}"';
+      }
+      return str;
+    }
+
+    // Format the createdTime
+    String formatDate(Timestamp? timestamp) {
+      if (timestamp == null) return 'N/A';
+      final date = timestamp.toDate();
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    }
+
+    return '${escapeField(client['display_name'])},'
+        '${escapeField(client['email'])},'
+        '${escapeField(formatDate(client['createdTime'] as Timestamp?))},'
+        '${escapeField(client['sessions'])},'
+        '${escapeField(client['coins'])},'
+        '${escapeField(client['high_score'])},'
+        '${escapeField(client['redeemed'])}\n';
+  }
+
+  void _downloadCSV(String csvData, String fileName) {
+    // Create blob and download link
+    final bytes = utf8.encode(csvData);
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', fileName)
+      ..style.display = 'none';
+
+    html.document.body?.children.add(anchor);
+    anchor.click();
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(url);
   }
 
   Future<List<Map<String, dynamic>>> _getVenueClients() async {
@@ -317,73 +399,5 @@ class _UsersListWidgetState extends State<UsersListWidget> {
       print('Error getting venue clients: $e');
       return [];
     }
-  }
-
-  void _downloadClientData(Map<String, dynamic> client) {
-    final csvData = _convertClientToCSV(client);
-    final fileName =
-        '${client['display_name'].toString().replaceAll(' ', '_')}_data.csv';
-    _downloadCSV(csvData, fileName);
-  }
-
-  void _downloadAllClientsData() async {
-    try {
-      final clients = await _getVenueClients();
-      if (clients.isEmpty) return;
-
-      // Create CSV header
-      String csvData =
-          'Name,Email,Created Date,Visits,Coins,High Score,Redeemed\n';
-
-      // Add data for each client
-      for (var client in clients) {
-        csvData += _convertClientToCSV(client);
-      }
-
-      _downloadCSV(csvData, 'all_clients_data.csv');
-    } catch (e) {
-      print('Error downloading all clients data: $e');
-    }
-  }
-
-  String _convertClientToCSV(Map<String, dynamic> client) {
-    // Escape special characters and wrap fields in quotes if they contain commas
-    String escapeField(dynamic value) {
-      String str = value.toString();
-      if (str.contains(',') || str.contains('"') || str.contains('\n')) {
-        return '"${str.replaceAll('"', '""')}"';
-      }
-      return str;
-    }
-
-    // Format the createdTime
-    String formatDate(Timestamp? timestamp) {
-      if (timestamp == null) return 'N/A';
-      final date = timestamp.toDate();
-      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    }
-
-    return '${escapeField(client['display_name'])},'
-        '${escapeField(client['email'])},'
-        '${escapeField(formatDate(client['createdTime'] as Timestamp?))},'
-        '${escapeField(client['sessions'])},'
-        '${escapeField(client['coins'])},'
-        '${escapeField(client['high_score'])},'
-        '${escapeField(client['redeemed'])}\n';
-  }
-
-  void _downloadCSV(String csvData, String fileName) {
-    // Create blob and download link
-    final bytes = utf8.encode(csvData);
-    final blob = html.Blob([bytes]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', fileName)
-      ..style.display = 'none';
-
-    html.document.body?.children.add(anchor);
-    anchor.click();
-    html.document.body?.children.remove(anchor);
-    html.Url.revokeObjectUrl(url);
   }
 } 
