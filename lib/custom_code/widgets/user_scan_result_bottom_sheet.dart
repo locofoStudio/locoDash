@@ -128,7 +128,11 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
       if (!doc.exists) throw Exception('User progress not found');
       final currentCoins = (doc.data()?['coin'] ?? 0) as int;
       final newCoins = currentCoins + (_calculatedCoins ?? 0);
-      await docRef.update({'coin': newCoins});
+      await docRef.update({
+        'coin': newCoins,
+        'distributedByVenue': true,
+        'lastDistributionTime': FieldValue.serverTimestamp(),
+      });
       setState(() {
         _rewardSuccess = true;
         _isLoading = false;

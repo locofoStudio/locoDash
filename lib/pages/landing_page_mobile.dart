@@ -8,6 +8,7 @@ import '/custom_code/widgets/venue_clients_widget.dart';
 import '/custom_code/widgets/users_list_widget.dart';
 import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
+import '/custom_code/widgets/offers_tracker_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -181,6 +182,7 @@ class _LandingPageState extends State<LandingPage> {
                 // Main content with responsive layout
                 Expanded(
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 100), // Prevent footer overlap
                     child: isLargeScreen 
                         ? _buildDesktopLayout() 
                         : _buildMobileLayout(),
@@ -257,11 +259,11 @@ class _LandingPageState extends State<LandingPage> {
             ],
           ),
           const SizedBox(height: 16),
-          // Bottom row: Coins distributed, Clients, Top Rewards
+          // Bottom row: Coins distributed, Clients, Offers Tracker
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Coins widget
+              // Coins distributed widget
               Expanded(
                 flex: 1,
                 child: VenueCoinsMetricsWidget(
@@ -272,22 +274,25 @@ class _LandingPageState extends State<LandingPage> {
               const SizedBox(width: 16),
               // Clients widget
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: VenueClientsWidget(
                   venueId: _selectedVenue ?? '',
                   showPreviewData: false,
                   onNavigateToUsersTab: () {
                     setState(() {
-                      _selectedIndex = 1; // Navigate to Users tab
+                      _selectedIndex = 1;
                     });
                   },
                 ),
               ),
               const SizedBox(width: 16),
-              // Top Rewards widget (use the existing rewards widget)
+              // Offers Tracker widget
               Expanded(
                 flex: 1,
-                child: _buildTopRewardsWidget(),
+                child: OffersTrackerWidget(
+                  venueId: _selectedVenue ?? '',
+                  showPreviewData: false,
+                ),
               ),
             ],
           ),
@@ -478,7 +483,7 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildOverviewTab() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16), // Remove horizontal padding to allow widgets to handle their own padding
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         children: [
           VenueUserMetricsWidget(
@@ -498,18 +503,24 @@ class _LandingPageState extends State<LandingPage> {
           const SizedBox(height: 16),
           VenueActivityChartWidget(
             venueId: _selectedVenue ?? '',
-            showPreviewData: true, // Use preview data for reliable display
+            showPreviewData: true,
           ),
           const SizedBox(height: 16),
           VenueClientsWidget(
             venueId: _selectedVenue ?? '',
-            showPreviewData: false, // Use real data from Firebase
+            showPreviewData: false,
             onNavigateToUsersTab: () {
               setState(() {
-                _selectedIndex = 1; // Navigate to Users tab
+                _selectedIndex = 1;
               });
             },
           ),
+          const SizedBox(height: 16),
+          OffersTrackerWidget(
+            venueId: _selectedVenue ?? '',
+            showPreviewData: false,
+          ),
+          const SizedBox(height: 32), // Add spacer for footer
         ],
       ),
     );

@@ -16,6 +16,7 @@ import '/custom_code/widgets/venue_coin_earned_widget.dart';
 import '/custom_code/widgets/loyalty_stats_widget.dart';
 import '../services/auth_service.dart';
 import '/custom_code/widgets/offers_tab_content.dart';
+import '/custom_code/widgets/offers_tracker_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -183,6 +184,7 @@ class _LandingPageState extends State<LandingPage> {
                 // Main content with responsive layout
                 Expanded(
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 100), // Prevent footer overlap
                     child: isLargeScreen 
                         ? _buildDesktopLayout() 
                         : _buildMobileLayout(),
@@ -384,7 +386,7 @@ class _LandingPageState extends State<LandingPage> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                // Right column: Venue Stats, Top Rewards, Top Players stacked
+                // Right column: Venue Stats and Offers Tracker stacked
                 Expanded(
                   flex: 1,
                   child: Column(
@@ -394,9 +396,10 @@ class _LandingPageState extends State<LandingPage> {
                         showPreviewData: false,
                       ),
                       const SizedBox(height: 14),
-                      _buildTopRewardsWidget(),
-                      const SizedBox(height: 14),
-                      TopPlayersCard(venueId: _selectedVenue ?? ''),
+                      OffersTrackerWidget(
+                        venueId: _selectedVenue ?? '',
+                        showPreviewData: false,
+                      ),
                     ],
                   ),
                 ),
@@ -644,9 +647,11 @@ class _LandingPageState extends State<LandingPage> {
             },
           ),
           const SizedBox(height: 14),
-          _buildTopRewardsWidget(),
-          const SizedBox(height: 14),
-          TopPlayersCard(venueId: _selectedVenue!),
+          OffersTrackerWidget(
+            venueId: _selectedVenue!,
+            showPreviewData: false,
+          ),
+          const SizedBox(height: 32), // Add spacer for footer
         ],
       ),
     );

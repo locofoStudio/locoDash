@@ -113,6 +113,10 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         if (data['venueId'] != widget.venueId) continue;
         final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
+        
+        // Only count coins that were distributed by the venue through QR scanning
+        if (data['distributedByVenue'] != true) continue;
+        
         int coins = 0;
         if (data['coins'] != null && data['coins'] is int) {
           coins += data['coins'] as int;
