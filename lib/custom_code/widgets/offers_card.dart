@@ -8,13 +8,13 @@ class OffersCard extends StatelessWidget {
   final VoidCallback? onEdit;
 
   const OffersCard({
-    Key? key,
+    super.key,
     required this.offerName,
     required this.offerDescription,
     required this.coinValue,
     this.imageUrl,
     this.onEdit,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

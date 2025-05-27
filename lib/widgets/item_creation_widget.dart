@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ItemCreationWidget extends StatefulWidget {
-  const ItemCreationWidget({Key? key}) : super(key: key);
+  const ItemCreationWidget({super.key});
 
   @override
   State<ItemCreationWidget> createState() => _ItemCreationWidgetState();
@@ -12,7 +12,7 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
   final TextEditingController _originalPriceController = TextEditingController();
   final TextEditingController _suggestedCoinPriceController = TextEditingController();
   final TextEditingController _itemDescriptionController = TextEditingController();
-  String _selectedCategory = 'Baked';
+  final String _selectedCategory = 'Baked';
 
   @override
   void dispose() {

@@ -15,7 +15,6 @@ import '/custom_code/widgets/qr_code_footer_bar.dart';
 import '/custom_code/widgets/venue_coin_earned_widget.dart';
 import '/custom_code/widgets/loyalty_stats_widget.dart';
 import '../services/auth_service.dart';
-import '/custom_code/widgets/item_creation_widget.dart';
 import '/custom_code/widgets/offers_tab_content.dart';
 
 class LandingPage extends StatefulWidget {

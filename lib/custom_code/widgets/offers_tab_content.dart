@@ -5,7 +5,7 @@ import 'item_creation_widget.dart';
 
 class OffersTabContent extends StatefulWidget {
   final String venueId;
-  const OffersTabContent({Key? key, required this.venueId}) : super(key: key);
+  const OffersTabContent({super.key, required this.venueId});
 
   @override
   State<OffersTabContent> createState() => _OffersTabContentState();

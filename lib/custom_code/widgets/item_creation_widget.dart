@@ -1,50 +1,203 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
 
 class ItemCreationWidget extends StatefulWidget {
   final Map<String, dynamic>? initialData;
   final VoidCallback? onCancel;
-  const ItemCreationWidget({Key? key, this.initialData, this.onCancel}) : super(key: key);
+  const ItemCreationWidget({super.key, this.initialData, this.onCancel});
 
   @override
   State<ItemCreationWidget> createState() => _ItemCreationWidgetState();
 }
 
 class _ItemCreationWidgetState extends State<ItemCreationWidget> {
-  final TextEditingController _itemNameController = TextEditingController();
+  final TextEditingController _offerNameController = TextEditingController();
   final TextEditingController _originalPriceController = TextEditingController();
-  final TextEditingController _suggestedCoinPriceController = TextEditingController();
-  final TextEditingController _itemDescriptionController = TextEditingController();
-  String _selectedCategory = 'Baked';
+  final TextEditingController _offerPriceController = TextEditingController();
+  final TextEditingController _offerInfoController = TextEditingController();
+  String _selectedVenue = 'Select Venue';
+  String? _selectedFilePath;
+  bool _isLoading = false;
+  List<String> _venues = ['Select Venue'];
+  String? _currentUserId;
+  Map<String, bool> _venueOwnership = {};
 
   @override
   void initState() {
     super.initState();
+    _loadCurrentUser();
     if (widget.initialData != null) {
-      _itemNameController.text = widget.initialData!['name'] ?? '';
+      _offerNameController.text = widget.initialData!['OfferName'] ?? '';
       _originalPriceController.text = widget.initialData!['originalPrice']?.toString() ?? '';
-      _suggestedCoinPriceController.text = widget.initialData!['coins']?.toString() ?? '';
-      _itemDescriptionController.text = widget.initialData!['description'] ?? '';
-      _selectedCategory = widget.initialData!['category'] ?? 'Baked';
+      _offerPriceController.text = widget.initialData!['OfferPrice']?.toString() ?? '';
+      _offerInfoController.text = widget.initialData!['OfferInfo'] ?? '';
+      _selectedVenue = widget.initialData!['venueId'] ?? 'Select Venue';
+    }
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      print('Current user: ${user?.uid}');
+      if (user != null) {
+        setState(() {
+          _currentUserId = user.uid;
+        });
+        await _loadVenues();
+      } else {
+        print('No user logged in');
+      }
+    } catch (e) {
+      print('Error loading current user: $e');
+    }
+  }
+
+  Future<void> _loadVenues() async {
+    try {
+      print('Loading venues for user: $_currentUserId');
+      
+      // First get the venue owner document for the current user
+      final venueOwnerDoc = await FirebaseFirestore.instance
+          .collection('venueOwners')
+          .doc(_currentUserId)
+          .get();
+
+      if (!venueOwnerDoc.exists) {
+        print('No venue owner document found for user');
+        return;
+      }
+
+      // Get the list of venue IDs the user owns
+      final List<dynamic> ownedVenueIds = venueOwnerDoc.data()?['venues'] ?? [];
+      print('User owns venues: $ownedVenueIds');
+
+      if (ownedVenueIds.isEmpty) {
+        print('User has no venues');
+        return;
+      }
+
+      // Get the venue details for each owned venue
+      final venues = await Future.wait(
+        ownedVenueIds.map((venueId) async {
+          final venueDoc = await FirebaseFirestore.instance
+              .collection('venues')
+              .doc(venueId.toString())
+              .get();
+          return venueDoc.data()?['name'] as String? ?? venueId.toString();
+        }),
+      );
+
+      print('Available venues: $venues');
+
+      setState(() {
+        _venues = ['Select Venue'] + venues;
+        _venueOwnership = {
+          for (var venueId in ownedVenueIds)
+            venueId.toString(): true
+        };
+        if (_venues.length > 1) {
+          _selectedVenue = _venues[1]; // Select first available venue by default
+        }
+      });
+    } catch (e) {
+      print('Error loading venues: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading venues: $e')),
+      );
+    }
+  }
+
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _selectedFilePath = result.files.first.path;
+        });
+      }
+    } catch (e) {
+      print('Error picking file: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error selecting file. Please try again.')),
+      );
+    }
+  }
+
+  Future<void> _addOffer() async {
+    if (_selectedVenue == 'Select Venue') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a venue')),
+      );
+      return;
+    }
+
+    // Find the venue ID that corresponds to the selected venue name
+    final venueId = _venueOwnership.entries
+        .firstWhere((entry) => entry.value == true)
+        .key;
+
+    if (!_venueOwnership.containsKey(venueId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You do not have permission to add offers to this venue')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Create the offer document
+      await FirebaseFirestore.instance.collection('offers').add({
+        'OfferName': _offerNameController.text,
+        'originalPrice': double.tryParse(_originalPriceController.text) ?? 0.0,
+        'OfferPrice': double.tryParse(_offerPriceController.text) ?? 0.0,
+        'OfferInfo': _offerInfoController.text,
+        'venueId': venueId,
+        'OfferPhoto': _selectedFilePath,
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdBy': _currentUserId,
+      });
+
+      if (widget.onCancel != null) {
+        widget.onCancel!();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating offer: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   @override
   void dispose() {
-    _itemNameController.dispose();
+    _offerNameController.dispose();
     _originalPriceController.dispose();
-    _suggestedCoinPriceController.dispose();
-    _itemDescriptionController.dispose();
+    _offerPriceController.dispose();
+    _offerInfoController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final width = isMobile ? 323.0 : 453.0;
+    final width = isMobile ? MediaQuery.of(context).size.width * 0.9 : 453.0;
 
     return Container(
       width: width,
-      padding: const EdgeInsets.all(40.5),
+      padding: EdgeInsets.all(isMobile ? 20.0 : 40.5),
       decoration: BoxDecoration(
         color: const Color(0xFF363C40),
         borderRadius: BorderRadius.circular(31),
@@ -63,93 +216,36 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
                   fontSize: 20,
                 ),
               ),
-              PopupMenuButton<String>(
-                offset: const Offset(0, 30),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              DropdownButton<String>(
+                value: _selectedVenue,
+                dropdownColor: const Color(0xFF0F2533),
+                style: const TextStyle(color: Color(0xFFFCFDFF)),
+                underline: Container(
+                  height: 1,
+                  color: const Color(0xFFFCFDFF),
                 ),
-                color: const Color(0xFF0F2533),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'Baked',
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFD9D9D9),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Baked',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'Demo',
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFD9D9D9),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Demo',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                onSelected: (value) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
+                items: _venues.map((String venue) {
+                  return DropdownMenuItem<String>(
+                    value: venue,
+                    child: Text(venue),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedVenue = newValue;
+                    });
+                  }
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFFCFDFF)),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _selectedCategory,
-                        style: const TextStyle(
-                          color: Color(0xFFFCFDFF),
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Color(0xFFDCDCDC),
-                        size: 24,
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _itemNameController,
+            controller: _offerNameController,
             style: const TextStyle(color: Color(0xFFDCDCDC)),
             decoration: InputDecoration(
-              hintText: 'Item Name',
+              hintText: 'Offer Name',
               hintStyle: const TextStyle(color: Color(0xFFDCDCDC)),
               filled: true,
               fillColor: Colors.transparent,
@@ -177,6 +273,7 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
                     TextField(
                       controller: _originalPriceController,
                       style: const TextStyle(color: Color(0xFFDCDCDC)),
+                      keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         hintText: 'Original Price',
                         hintStyle: const TextStyle(color: Color(0xFFDCDCDC)),
@@ -198,10 +295,11 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
                     ),
                     const SizedBox(height: 6),
                     TextField(
-                      controller: _suggestedCoinPriceController,
+                      controller: _offerPriceController,
                       style: const TextStyle(color: Color(0xFFC5C352)),
+                      keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        hintText: 'suggested coin price',
+                        hintText: 'Offer Price',
                         hintStyle: const TextStyle(color: Color(0xFFC5C352)),
                         filled: true,
                         fillColor: Colors.transparent,
@@ -226,11 +324,11 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _itemDescriptionController,
+            controller: _offerInfoController,
             maxLines: 5,
             style: const TextStyle(color: Color(0xFFDCDCDC)),
             decoration: InputDecoration(
-              hintText: 'Item Description',
+              hintText: 'Offer Info',
               hintStyle: const TextStyle(color: Color(0xFFDCDCDC)),
               filled: true,
               fillColor: Colors.transparent,
@@ -252,15 +350,27 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Attachment Icon
-              Container(
-                width: 22,
-                height: 23,
-                child: CustomPaint(
-                  painter: AttachmentIconPainter(),
+              GestureDetector(
+                onTap: _pickFile,
+                child: SizedBox(
+                  width: 22,
+                  height: 23,
+                  child: CustomPaint(
+                    painter: AttachmentIconPainter(),
+                  ),
                 ),
               ),
-              // Add Item Button
+              if (_selectedFilePath != null)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'File selected: ${_selectedFilePath!.split('/').last}',
+                      style: const TextStyle(color: Color(0xFFDCDCDC)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
               Container(
                 width: 113,
                 height: 28,
@@ -276,22 +386,29 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
                   ],
                 ),
                 child: TextButton(
-                  onPressed: () {
-                    // TODO: Implement add item functionality
-                  },
+                  onPressed: _isLoading ? null : _addOffer,
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Add item',
-                    style: TextStyle(
-                      color: Color(0xFFB8C5CD),
-                      fontSize: 14,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB8C5CD)),
+                          ),
+                        )
+                      : const Text(
+                          'Add item',
+                          style: TextStyle(
+                            color: Color(0xFFB8C5CD),
+                            fontSize: 14,
+                          ),
+                        ),
                 ),
               ),
             ],
