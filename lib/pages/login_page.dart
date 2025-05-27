@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
-import 'landing_page.dart';
 import '../utils/responsive_helper.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

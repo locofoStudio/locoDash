@@ -15,6 +15,8 @@ import '/custom_code/widgets/qr_code_footer_bar.dart';
 import '/custom_code/widgets/venue_coin_earned_widget.dart';
 import '/custom_code/widgets/loyalty_stats_widget.dart';
 import '../services/auth_service.dart';
+import '/custom_code/widgets/item_creation_widget.dart';
+import '/custom_code/widgets/offers_tab_content.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -313,7 +315,7 @@ class _LandingPageState extends State<LandingPage> {
       case 1: // Users
         return _buildDesktopUsersTab();
       case 2: // Offers
-        return const Center(child: Text('Offers Content', style: TextStyle(color: Colors.white)));
+        return _buildDesktopOffersTab();
       case 3: // Leaderboard
         return _buildDesktopLeaderboardTab();
       default:
@@ -438,6 +440,14 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
+  // Desktop layout for offers tab
+  Widget _buildDesktopOffersTab() {
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: OffersTabContent(venueId: _selectedVenue ?? ''),
+    );
+  }
+
   // Desktop layout for leaderboard tab
   Widget _buildDesktopLeaderboardTab() {
     return Padding(
@@ -460,7 +470,7 @@ class _LandingPageState extends State<LandingPage> {
       case 1: // Users
         return _buildUsersTab();
       case 2: // Offers
-        return const Center(child: Text('Offers Content', style: TextStyle(color: Colors.white)));
+        return _buildOffersTab();
       case 3: // Leaderboard
         return _buildLeaderboardTab();
       default:
@@ -693,6 +703,11 @@ class _LandingPageState extends State<LandingPage> {
         height: 700,
       ),
     );
+  }
+
+  // Mobile layout for offers tab
+  Widget _buildOffersTab() {
+    return OffersTabContent(venueId: _selectedVenue ?? '');
   }
 
   // Widget to display Rewards Collected metrics
