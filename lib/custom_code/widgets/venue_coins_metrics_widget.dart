@@ -280,7 +280,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
     final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
     final isTablet = ResponsiveHelper.isTablet(context);
     final valueFontSize = isLargeScreen 
-        ? (isTablet ? 20.0 : 36.0) 
+        ? 18.0 
         : 18.0;
 
     return Padding(

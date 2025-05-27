@@ -247,7 +247,7 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
     final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
     final isTablet = ResponsiveHelper.isTablet(context);
     final valueFontSize = isLargeScreen 
-        ? (isTablet ? 20.0 : 24.0) 
+        ? 18.0 
         : 18.0;
     
     return Row(

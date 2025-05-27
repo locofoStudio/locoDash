@@ -22,8 +22,7 @@ class OffersCard extends StatelessWidget {
     final width = isMobile ? 360.0 : 488.0;
 
     return Container(
-      width: width,
-      height: 108,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF363740),
         borderRadius: BorderRadius.circular(9),
@@ -32,6 +31,7 @@ class OffersCard extends StatelessWidget {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Image container
           Container(
@@ -52,69 +52,77 @@ class OffersCard extends StatelessWidget {
                   )
                 : null,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 6),
           // Info section
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Title section
-              Column(
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    offerName,
-                    style: const TextStyle(
-                      color: Color(0xFFDCDCDC),
-                      fontSize: 19,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  // Title section
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        offerName,
+                        style: const TextStyle(
+                          color: Color(0xFFDCDCDC),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        offerDescription,
+                        style: const TextStyle(
+                          color: Color(0xFFDCDCDC),
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    offerDescription,
-                    style: const TextStyle(
-                      color: Color(0xFFDCDCDC),
-                      fontSize: 14,
-                    ),
+                  const SizedBox(height: 8),
+                  // Coins section
+                  Row(
+                    children: [
+                      const Text(
+                        'Coins:',
+                        style: TextStyle(
+                          color: Color(0xFFDCDCDC),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        coinValue,
+                        style: const TextStyle(
+                          color: Color(0xFFE86526),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 15),
-              // Coins section
-              Row(
-                children: [
-                  const Text(
-                    'Coins:',
-                    style: TextStyle(
-                      color: Color(0xFFDCDCDC),
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    coinValue,
-                    style: const TextStyle(
-                      color: Color(0xFFE86526),
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-          const Spacer(),
           // Edit button
           Container(
-            width: 70,
+            width: 50,
             height: 42,
-            margin: const EdgeInsets.only(right: 24),
+            margin: const EdgeInsets.only(right: 6),
             decoration: BoxDecoration(
               color: const Color(0xFF363740),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: const Color(0xFFDCDCDC),
-                width: 2,
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
@@ -137,7 +145,7 @@ class OffersCard extends StatelessWidget {
                 'Edit',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),

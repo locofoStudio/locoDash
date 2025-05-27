@@ -157,7 +157,7 @@ class _VenueCoinEarnedWidgetState extends State<VenueCoinEarnedWidget> {
             Padding(
               padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
               child: Text(
-                'Coin earned',
+                'Coins earned',
                 style: TextStyle(
                   fontFamily: 'Roboto Flex',
                   color: widget.textColor,
@@ -224,7 +224,7 @@ class _VenueCoinEarnedWidgetState extends State<VenueCoinEarnedWidget> {
     final isLargeScreen = ResponsiveHelper.isLargeScreen(context);
     final isTablet = ResponsiveHelper.isTablet(context);
     final valueFontSize = isLargeScreen 
-        ? (isTablet ? 20.0 : 36.0) 
+        ? 18.0 
         : 18.0;
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 12.0),
