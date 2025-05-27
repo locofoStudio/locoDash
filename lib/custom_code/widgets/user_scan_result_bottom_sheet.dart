@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class UserScanResultBottomSheet extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -127,8 +128,13 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
       final doc = await docRef.get();
       if (!doc.exists) throw Exception('User progress not found');
       final currentCoins = (doc.data()?['coin'] ?? 0) as int;
+      final currentCoinsFromVenue = (doc.data()?['coinsFromVenue'] ?? 0) as int;
       final newCoins = currentCoins + (_calculatedCoins ?? 0);
-      await docRef.update({'coin': newCoins});
+      final newCoinsFromVenue = currentCoinsFromVenue + (_calculatedCoins ?? 0);
+      await docRef.update({
+        'coin': newCoins,
+        'coinsFromVenue': newCoinsFromVenue,
+      });
       setState(() {
         _rewardSuccess = true;
         _isLoading = false;
@@ -306,11 +312,15 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
                       ),
                       child: (photoUrl.isNotEmpty)
                           ? ClipOval(
-                              child: Image.network(
-                                photoUrl,
+                              child: CachedNetworkImage(
+                                imageUrl: photoUrl,
                                 fit: BoxFit.cover,
                                 width: 96,
                                 height: 96,
+                                placeholder: (context, url) =>
+                                    const CircularProgressIndicator(),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.person, size: 56, color: Colors.white),
                               ),
                             )
                           : const Icon(Icons.person, size: 56, color: Colors.white),
