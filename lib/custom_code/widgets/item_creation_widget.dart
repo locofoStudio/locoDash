@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:io';
 
 class ItemCreationWidget extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -154,14 +153,12 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
       return;
     }
 
-    // Find the venue ID that corresponds to the selected venue name
-    final venueId = _venueOwnership.entries
-        .firstWhere((entry) => entry.value == true)
-        .key;
-
-    if (!_venueOwnership.containsKey(venueId)) {
+    final venueId = _venues.firstWhere((v) => v == _selectedVenue, orElse: () => '');
+    if (venueId.isEmpty || !_venueOwnership.containsKey(venueId)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You do not have permission to add offers to this venue')),
+        const SnackBar(
+            content: Text(
+                'You do not have permission to add offers to this venue')),
       );
       return;
     }
@@ -172,13 +169,14 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
 
     try {
       final offerData = {
-        'OfferName': _offerNameController.text,
+        'name': _offerNameController.text,
+        'description': _offerInfoController.text,
+        'price': double.tryParse(_offerPriceController.text) ?? 0.0,
         'originalPrice': double.tryParse(_originalPriceController.text) ?? 0.0,
-        'OfferPrice': double.tryParse(_offerPriceController.text) ?? 0.0,
-        'OfferInfo': _offerInfoController.text,
+        'photoUrl': _selectedFilePath,
         'venueId': venueId,
-        'OfferPhoto': _selectedFilePath,
         'createdBy': _currentUserId,
+        'updatedAt': FieldValue.serverTimestamp(),
       };
 
       if (_documentId != null) {
@@ -190,9 +188,7 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
       } else {
         // Create new document
         offerData['createdAt'] = FieldValue.serverTimestamp();
-        await FirebaseFirestore.instance
-            .collection('offers')
-            .add(offerData);
+        await FirebaseFirestore.instance.collection('offers').add(offerData);
       }
 
       if (widget.onCancel != null) {
@@ -200,7 +196,9 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error ${_documentId != null ? 'updating' : 'creating'} offer: $e')),
+        SnackBar(
+            content: Text(
+                'Error ${_documentId != null ? 'updating' : 'creating'} offer: $e')),
       );
     } finally {
       setState(() {
@@ -231,263 +229,173 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
         color: const Color(0xFF363C40),
         borderRadius: BorderRadius.circular(31),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _documentId != null ? 'Edit Item' : 'Add Item',
-                style: const TextStyle(
-                  color: Color(0xFFFCFDFF),
-                  fontSize: 20,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _documentId != null ? 'Edit Item' : 'Add Item',
+                  style: const TextStyle(
+                    color: Color(0xFFFCFDFF),
+                    fontSize: 20,
+                  ),
                 ),
-              ),
-              DropdownButton<String>(
-                value: _selectedVenue,
-                dropdownColor: const Color(0xFF0F2533),
-                style: const TextStyle(color: Color(0xFFFCFDFF)),
-                underline: Container(
-                  height: 1,
-                  color: const Color(0xFFFCFDFF),
+                DropdownButton<String>(
+                  value: _selectedVenue,
+                  dropdownColor: const Color(0xFF0F2533),
+                  style: const TextStyle(color: Color(0xFFFCFDFF)),
+                  underline: Container(
+                    height: 1,
+                    color: const Color(0xFFFCFDFF),
+                  ),
+                  items: _venues.map((String venue) {
+                    return DropdownMenuItem<String>(
+                      value: venue,
+                      child: Text(venue),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedVenue = newValue;
+                      });
+                    }
+                  },
                 ),
-                items: _venues.map((String venue) {
-                  return DropdownMenuItem<String>(
-                    value: venue,
-                    child: Text(venue),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedVenue = newValue;
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _offerNameController,
-            style: const TextStyle(color: Color(0xFFDCDCDC)),
-            decoration: InputDecoration(
-              hintText: 'Offer Name',
-              hintStyle: const TextStyle(color: Color(0xFFDCDCDC)),
-              filled: true,
-              fillColor: Colors.transparent,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFF525E5D)),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildTextField(_offerNameController, 'Offer name'),
+            const SizedBox(height: 20),
+            _buildTextField(_originalPriceController, 'Original price', isNumeric: true),
+            const SizedBox(height: 10),
+            Text(
+              'Suggested price (Original Price × 11)',
+              style: TextStyle(
+                color: const Color(0xFFFCFDFF).withOpacity(0.6),
+                fontSize: 12,
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: _originalPriceController,
-                      style: const TextStyle(color: Color(0xFFDCDCDC)),
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'Original Price',
-                        hintStyle: const TextStyle(color: Color(0xFFDCDCDC)),
-                        filled: true,
-                        fillColor: Colors.transparent,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9),
-                          borderSide: const BorderSide(color: Color(0xFF525E5D)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9),
-                          borderSide: const BorderSide(color: Color(0xFF525E5D)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9),
-                          borderSide: const BorderSide(color: Color(0xFF525E5D)),
-                        ),
+            const SizedBox(height: 10),
+            _buildTextField(_offerPriceController, 'Offer price', isNumeric: true),
+            const SizedBox(height: 20),
+            _buildTextField(_offerInfoController, 'Offer info', maxLines: 3),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: _pickFile,
+                  child: SizedBox(
+                    width: 22,
+                    height: 23,
+                    child: CustomPaint(
+                      painter: AttachmentIconPainter(),
+                    ),
+                  ),
+                ),
+                if (_selectedFilePath != null)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text(
+                        'File selected: ${_selectedFilePath!.split('/').last}',
+                        style: const TextStyle(color: Color(0xFFDCDCDC)),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _offerPriceController,
-                            style: const TextStyle(color: Color(0xFFC5C352)),
-                            keyboardType: TextInputType.number,
-                            onTap: () {
-                              setState(() {
-                                _isUsingSuggestedPrice = false;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              hintText: 'Offer Price',
-                              hintStyle: const TextStyle(color: Color(0xFFC5C352)),
-                              filled: true,
-                              fillColor: Colors.transparent,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(9),
-                                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(9),
-                                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(9),
-                                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-                              ),
+                  ),
+                const Spacer(),
+                SizedBox(
+                  width: 130,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _addOffer,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE9724C),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(31),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          )
+                        : Text(
+                            _documentId != null ? 'Update Item' : 'Add Item',
+                            style: const TextStyle(
+                              color: Color(0xFFFCFDFF),
+                              fontSize: 16,
                             ),
                           ),
-                        ),
-                        if (!_isUsingSuggestedPrice)
-                          IconButton(
-                            icon: const Icon(Icons.refresh, color: Color(0xFFC5C352)),
-                            onPressed: () {
-                              setState(() {
-                                _isUsingSuggestedPrice = true;
-                                _updateSuggestedPrice();
-                              });
-                            },
-                            tooltip: 'Use suggested price',
-                          ),
-                      ],
-                    ),
-                    if (_isUsingSuggestedPrice)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          'Suggested price (Original Price × 11)',
-                          style: TextStyle(
-                            color: Color(0xFFC5C352).withOpacity(0.7),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _offerInfoController,
-            maxLines: 5,
-            style: const TextStyle(color: Color(0xFFDCDCDC)),
-            decoration: InputDecoration(
-              hintText: 'Offer Info',
-              hintStyle: const TextStyle(color: Color(0xFFDCDCDC)),
-              filled: true,
-              fillColor: Colors.transparent,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFF525E5D)),
-              ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: _pickFile,
-                child: SizedBox(
-                  width: 22,
-                  height: 23,
-                  child: CustomPaint(
-                    painter: AttachmentIconPainter(),
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  if (widget.onCancel != null) {
+                    widget.onCancel!();
+                  }
+                },
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Color(0xFFE9724C),
+                    fontSize: 16,
                   ),
-                ),
-              ),
-              if (_selectedFilePath != null)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      'File selected: ${_selectedFilePath!.split('/').last}',
-                      style: const TextStyle(color: Color(0xFFDCDCDC)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              Container(
-                width: 113,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE86526),
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x26000000),
-                      offset: Offset(-2, 2),
-                      blurRadius: 0,
-                    ),
-                  ],
-                ),
-                child: TextButton(
-                  onPressed: _isLoading ? null : _addOffer,
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB8C5CD)),
-                          ),
-                        )
-                      : Text(
-                          _documentId != null ? 'Update item' : 'Add item',
-                          style: const TextStyle(
-                            color: Color(0xFFB8C5CD),
-                            fontSize: 14,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-          if (widget.onCancel != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 16.0),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: widget.onCancel,
-                  child: const Text('Cancel', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, {bool isNumeric = false, int maxLines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFFCFDFF),
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          style: const TextStyle(color: Color(0xFFDCDCDC)),
+          keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+          decoration: InputDecoration(
+            hintText: label,
+            hintStyle: const TextStyle(color: Color(0xFFDCDCDC)),
+            filled: true,
+            fillColor: Colors.transparent,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(9),
+              borderSide: const BorderSide(color: Color(0xFF525E5D)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(9),
+              borderSide: const BorderSide(color: Color(0xFF525E5D)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(9),
+              borderSide: const BorderSide(color: Color(0xFF525E5D)),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 // import 'package:fl_chart/fl_chart.dart'; // Uncomment if using charts
 // import your AppCard, AppText, AppColors here
 
@@ -156,14 +157,12 @@ class TopPlayersCard extends StatelessWidget {
                                             child: ClipRRect(
                                               borderRadius: BorderRadius.circular(20),
                                               child: user['photo_url'] != null
-                                                  ? Image.network(
-                                                      user['photo_url'],
+                                                  ? CachedNetworkImage(
+                                                      imageUrl: user['photo_url'],
                                                       fit: BoxFit.cover,
-                                                      loadingBuilder: (context, child, loadingProgress) {
-                                                        if (loadingProgress == null) return child;
-                                                        return const CircularProgressIndicator();
-                                                      },
-                                                      errorBuilder: (context, error, stackTrace) =>
+                                                      placeholder: (context, url) =>
+                                                          const CircularProgressIndicator(),
+                                                      errorWidget: (context, url, error) =>
                                                           const Icon(Icons.person, color: Colors.white, size: 40),
                                                     )
                                                   : const Icon(Icons.person, color: Colors.white, size: 40),
@@ -264,14 +263,12 @@ class TopPlayersCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(40),
               child: user['photo_url'] != null
-                  ? Image.network(
-                      user['photo_url'],
+                  ? CachedNetworkImage(
+                      imageUrl: user['photo_url'],
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const CircularProgressIndicator();
-                      },
-                      errorBuilder: (context, error, stackTrace) =>
+                      placeholder: (context, url) =>
+                          const CircularProgressIndicator(),
+                      errorWidget: (context, url, error) =>
                           const Icon(Icons.person, color: Colors.white, size: 40),
                     )
                   : const Icon(Icons.person, color: Colors.white, size: 40),

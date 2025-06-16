@@ -209,19 +209,16 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(40),
               child: user['photo_url'] != null
-                  ? (() {
-                      print('Debug - Photo URL for user ${user['display_name']}: ${user['photo_url']}');
-                      return CachedNetworkImage(
-                        imageUrl: user['photo_url'],
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            const CircularProgressIndicator(),
-                        errorWidget: (context, url, error) {
-                          print('Debug - Error loading image for user ${user['display_name']}: $error');
-                          return Icon(Icons.person, color: widget.textColor, size: 40);
-                        },
-                      );
-                    })()
+                  ? CachedNetworkImage(
+                      imageUrl: user['photo_url'],
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          const CircularProgressIndicator(),
+                      errorWidget: (context, url, error) {
+                        print('Debug - Error loading image for user ${user['display_name']}: $error');
+                        return Icon(Icons.person, color: widget.textColor, size: 40);
+                      },
+                    )
                   : Icon(Icons.person, color: widget.textColor, size: 40),
             ),
           ),
