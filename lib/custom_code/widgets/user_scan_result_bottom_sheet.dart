@@ -102,11 +102,14 @@ class _UserScanResultBottomSheetState extends State<UserScanResultBottomSheet> {
       
       print('Document updated successfully');
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Game unlocked successfully!'))
-      );
-      
-      Navigator.pop(context);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Game unlocked successfully!')),
+        );
+      }
     } catch (e) {
       print('Error unlocking game: $e');
       setState(() {

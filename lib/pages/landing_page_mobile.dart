@@ -8,6 +8,8 @@ import '/custom_code/widgets/venue_clients_widget.dart';
 import '/custom_code/widgets/users_list_widget.dart';
 import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
+import '../widgets/full_screen_scanner_overlay.dart';
+import '../custom_code/widgets/user_scan_result_bottom_sheet.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -950,7 +952,7 @@ class _LandingPageState extends State<LandingPage> {
             right: 0,
             top: -20,
             child: GestureDetector(
-              onTap: _showQrScannerBottomSheet,
+              onTap: () => _openScannerModal(context),
               child: Container(
                 width: 75,
                 height: 66,
@@ -1001,5 +1003,95 @@ class _LandingPageState extends State<LandingPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openScannerModal(BuildContext context) async {
+    final result = await showGeneralDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close QR Scanner',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, __, ___) => const FullScreenScannerOverlay(),
+      transitionBuilder: (_, anim, __, child) => SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .chain(CurveTween(curve: Curves.easeOut))
+            .animate(anim),
+        child: child,
+      ),
+    );
+    if (result != null) {
+      _handleScannedQRCode(result);
+    }
+  }
+
+  void _handleScannedQRCode(String code) async {
+    try {
+      String normalized = code.trim()
+          .replaceAll(RegExp(r'[\s\n\r]'), '')
+          .replaceAll(RegExp(r'[–—−]'), '-')
+          .replaceAll(RegExp(r'[_|/]'), '-');
+
+      final parts = normalized.split('-');
+      String docId;
+      String userId;
+      String venueId;
+
+      if (parts.length == 2) {
+        userId = parts[0];
+        venueId = parts[1];
+        docId = '$userId-$venueId';
+      } else {
+        docId = normalized;
+        final match = RegExp(r'^(.*?)-(.*)').firstMatch(docId);
+        userId = match != null ? match.group(1) ?? '' : '';
+        venueId = match != null ? match.group(2) ?? '' : '';
+      }
+
+      final doc = await FirebaseFirestore.instance
+          .collection('userVenueProgress')
+          .doc(docId)
+          .get();
+
+      if (!doc.exists) {
+        throw Exception('No userVenueProgress found for this user/venue');
+      }
+
+      final data = doc.data();
+
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return UserScanResultBottomSheet(
+            userData: {
+              'displayName': data?['displayName'] ?? data?['name'] ?? 'N/A',
+              'email': data?['email'] ?? 'N/A',
+              'phone': data?['phone'] ?? 'N/A',
+              'photoUrl': data?['photoUrl'] ?? '',
+            },
+            venueData: {
+              'name': data?['venueName'] ?? data?['venueId'] ?? 'N/A',
+            },
+            progressData: {
+              'coin': data?['coin'] ?? 0,
+              'sessions': data?['sessions'] ?? 0,
+            },
+            qrData: {'userId': userId, 'venueId': venueId},
+            currentVenueId: _selectedVenue ?? '',
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error processing QR code: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 } 

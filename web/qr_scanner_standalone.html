@@ -13,24 +13,27 @@
     </style>
   </head>
   <body>
-    <button id="close-btn" onclick="window.close()">Close</button>
+    <button id="close-btn" onclick="window.parent.postMessage({ type: 'qr_cancel' }, '*')">Close</button>
     <div id="reader"></div>
     <div id="qr-result">Scan a QR code...</div>
     <button id="confirm-btn" disabled>Confirm</button>
     <script>
       let scannedCode = null;
       function onScanSuccess(decodedText, decodedResult) {
+        if (window.didSend) return; // prevent multiple sends
+        window.didSend = true;
         scannedCode = decodedText;
         document.getElementById('qr-result').textContent = 'Scanned: ' + decodedText;
+        // Immediately send the scanned code to Flutter parent
+        window.parent.postMessage({ type: 'qr_scanned', data: scannedCode }, '*');
         document.getElementById('confirm-btn').disabled = false;
       }
       let html5QrcodeScanner = new Html5QrcodeScanner(
         "reader", { fps: 10, qrbox: 250 });
       html5QrcodeScanner.render(onScanSuccess);
       document.getElementById('confirm-btn').onclick = function() {
-        if (scannedCode && window.opener) {
-          window.opener.postMessage({ type: 'qr_scanned', data: scannedCode }, '*');
-          setTimeout(() => window.close(), 500); // Add a delay before closing
+        if (scannedCode) {
+          window.parent.postMessage({ type: 'qr_scanned', data: scannedCode }, '*');
         }
       };
     </script>

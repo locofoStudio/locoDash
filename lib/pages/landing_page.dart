@@ -9,7 +9,7 @@ import '/custom_code/widgets/venue_clients_widget.dart';
 import '/custom_code/widgets/users_list_widget.dart';
 import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
-import 'dart:html' as html;
+import '../widgets/full_screen_scanner_overlay.dart';
 import '/custom_code/widgets/user_scan_result_bottom_sheet.dart';
 import '/custom_code/widgets/qr_code_footer_bar.dart';
 import '/custom_code/widgets/venue_coin_earned_widget.dart';
@@ -165,7 +165,7 @@ class _LandingPageState extends State<LandingPage> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                onPressed: () => _openStandaloneQRScanner(context),
+                onPressed: () => _openScannerModal(context),
               ),
             ],
             centerTitle: false,
@@ -203,32 +203,38 @@ class _LandingPageState extends State<LandingPage> {
             accentColor: const Color(0xFFC5C352),
             iconColor: const Color(0xFF363740),
             textColor: Colors.black,
-            onQrTap: () => _openStandaloneQRScanner(context),
+            onQrTap: () => _openScannerModal(context),
           ),
         ),
       ],
     );
   }
 
-  void _openStandaloneQRScanner(BuildContext context) {
-    final scannerWindow = html.window.open('/qr_scanner_standalone.html', 'qr_scanner', 'width=480,height=600');
-    void listener(html.Event event) async {
-      if (event is html.MessageEvent && event.data is Map && event.data['type'] == 'qr_scanned') {
-        final String code = event.data['data'];
-        print('Scanned QR code: $code'); // Print the scanned code
-        await Future.delayed(const Duration(milliseconds: 500)); // Add a delay
-        _handleScannedQRCode(code);
-        html.window.removeEventListener('message', listener);
-        scannerWindow.close();
-      }
+  Future<void> _openScannerModal(BuildContext context) async {
+    final result = await showGeneralDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close QR Scanner',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, __, ___) => const FullScreenScannerOverlay(),
+      transitionBuilder: (_, anim, __, child) => SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .chain(CurveTween(curve: Curves.easeOut))
+            .animate(anim),
+        child: child,
+      ),
+    );
+    if (result != null) {
+      _handleScannedQRCode(result);
     }
-    html.window.addEventListener('message', listener);
   }
 
   void _handleScannedQRCode(String code) async {
     try {
       // Normalize all dash-like characters and other separators to a regular hyphen-minus
-      String normalized = code
+      String normalized = code.trim()
+          .replaceAll(RegExp(r'[\s\n\r]'), '')
           .replaceAll(RegExp(r'[–—−]'), '-') // en dash, em dash, minus sign
           .replaceAll(RegExp(r'[_|/]'), '-'); // also normalize other separators
 
