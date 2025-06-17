@@ -89,7 +89,7 @@ class _OffersTabContentState extends State<OffersTabContent> {
             return ListView.separated(
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               itemCount: offers.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, index) {

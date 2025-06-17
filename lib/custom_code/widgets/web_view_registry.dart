@@ -7,7 +7,7 @@ typedef PlatformViewFactory = dynamic Function(int viewId);
 
 void registerWebViewFactory(String viewType, PlatformViewFactory factory) {
   if (kIsWeb) {
-    // ignore: undefined_prefixed_name
-    ui.platformViewRegistry.registerViewFactory(viewType, factory);
+  // ignore: undefined_prefixed_name
+  ui.platformViewRegistry.registerViewFactory(viewType, factory);
   }
 } 

@@ -114,11 +114,10 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
         int coins = 0;
-        if (data['coins'] != null && data['coins'] is int) {
-          coins += data['coins'] as int;
-        }
-        if (data['coin'] != null && data['coin'] is int) {
-          coins += data['coin'] as int;
+        if (data['coinsFromVenue'] is int) {
+          coins = data['coinsFromVenue'] as int;
+        } else if (data['coinsFromVenue'] is num) {
+          coins = (data['coinsFromVenue'] as num).toInt();
         }
         totalCoins += coins;
         if (createdTime.isAfter(startOfMonth)) {

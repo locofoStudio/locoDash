@@ -1,6 +1,7 @@
 /// Full-screen overlay that shows the existing HTML5 QR-scanner page inside an iframe.
 /// Web-only. On receiving a postMessage `{type: 'qr_scanned', data: <code>}` it
 /// pops itself from the Navigator and returns the scanned string.
+library;
 
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;

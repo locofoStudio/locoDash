@@ -92,12 +92,12 @@ class _VenueCoinEarnedWidgetState extends State<VenueCoinEarnedWidget> {
         if (data['venueId'] != widget.venueId) continue;
         final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;
+        // "coinsFromGame" is expected to be an integer, but handle num just in case.
         int coins = 0;
-        if (data['coins'] != null && data['coins'] is int) {
-          coins += data['coins'] as int;
-        }
-        if (data['coin'] != null && data['coin'] is int) {
-          coins += data['coin'] as int;
+        if (data['coinsFromGame'] is int) {
+          coins = data['coinsFromGame'] as int;
+        } else if (data['coinsFromGame'] is num) {
+          coins = (data['coinsFromGame'] as num).toInt();
         }
         totalCoins += coins;
         if (createdTime.isAfter(startOfMonth)) {

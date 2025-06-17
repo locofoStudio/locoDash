@@ -10,6 +10,8 @@ import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/full_screen_scanner_overlay.dart';
 import '../custom_code/widgets/user_scan_result_bottom_sheet.dart';
+import '/custom_code/widgets/offers_tab_content.dart';
+import '/custom_code/widgets/top_reward_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -183,6 +185,7 @@ class _LandingPageState extends State<LandingPage> {
                 // Main content with responsive layout
                 Expanded(
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 80),
                     child: isLargeScreen 
                         ? _buildDesktopLayout() 
                         : _buildMobileLayout(),
@@ -606,66 +609,7 @@ class _LandingPageState extends State<LandingPage> {
 
   // Widget to display Top Rewards 
   Widget _buildTopRewardsWidget() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFF363740),
-        borderRadius: BorderRadius.circular(31.0),
-      ),
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Top rewards',
-            style: TextStyle(
-              fontFamily: 'Roboto Flex',
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 22),
-          const Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Reward',
-                      style: TextStyle(
-                        fontFamily: 'Roboto Flex',
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      'Capuccino',
-                      style: TextStyle(
-                        fontFamily: 'Roboto Flex',
-                        color: Color(0xFFC5C352),
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildMetricRow(
-            'Total orders / month',
-            '154',
-            const Color(0xFFBF9BF2),
-            'Total Spend',
-            r'$323',
-            const Color(0xFFF87C58),
-          ),
-        ],
-      ),
-    );
+    return TopRewardWidget(venueId: _selectedVenue ?? '');
   }
 
   // Widget to display Clients

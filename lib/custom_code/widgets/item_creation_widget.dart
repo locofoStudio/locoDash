@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as p;
+import 'dart:typed_data';
 
 class ItemCreationWidget extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -17,14 +21,19 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
   final TextEditingController _originalPriceController = TextEditingController();
   final TextEditingController _offerPriceController = TextEditingController();
   final TextEditingController _offerInfoController = TextEditingController();
+  final TextEditingController _maxItemController = TextEditingController();
   String _selectedVenue = 'Select Venue';
-  String? _selectedFilePath;
+  String? _selectedFilePath; // Local path on desktop/mobile
+  Uint8List? _selectedFileBytes; // Raw bytes on web/mobile when path is null
+  String? _selectedFileName; // Original filename, used for Storage path
   bool _isLoading = false;
+  bool _isAvailable = true;
   List<String> _venues = ['Select Venue'];
   String? _currentUserId;
   Map<String, bool> _venueOwnership = {};
   String? _documentId;
   bool _isUsingSuggestedPrice = true;
+  bool _fileChanged = false;
 
   @override
   void initState() {
@@ -39,6 +48,8 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
       _documentId = widget.initialData!['id'];
       _selectedFilePath = widget.initialData!['OfferPhoto'];
       _isUsingSuggestedPrice = false; // When editing, we don't use suggested price
+      _isAvailable = widget.initialData!['available'] ?? true;
+      _maxItemController.text = widget.initialData!['maxRedemptions']?.toString() ?? '';
     }
 
     // Add listener to original price controller
@@ -133,8 +144,12 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
       );
 
       if (result != null && result.files.isNotEmpty) {
+        final picked = result.files.first;
         setState(() {
-          _selectedFilePath = result.files.first.path;
+          _selectedFilePath = picked.path; // may be null on web
+          _selectedFileBytes = picked.bytes; // null on desktop
+          _selectedFileName = picked.name;
+          _fileChanged = true;
         });
       }
     } catch (e) {
@@ -168,14 +183,43 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
     });
 
     try {
+      // Upload the image (supports both path+File and raw bytes)
+      String? photoUrl;
+      if (_fileChanged) {
+        try {
+          final storageRef = FirebaseStorage.instance
+              .ref()
+              .child('offers')
+              .child(venueId)
+              .child(_selectedFileName ?? 'img_${DateTime.now().millisecondsSinceEpoch}');
+
+          if (_selectedFileBytes != null) {
+            // Web / bytes path
+            await storageRef.putData(_selectedFileBytes!);
+          } else if (_selectedFilePath != null) {
+            final file = File(_selectedFilePath!);
+            await storageRef.putFile(file);
+          }
+
+          photoUrl = await storageRef.getDownloadURL();
+        } catch (e) {
+          print('Upload error: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Image upload failed')),
+          );
+        }
+      }
+
       final offerData = {
-        'name': _offerNameController.text,
-        'description': _offerInfoController.text,
-        'price': double.tryParse(_offerPriceController.text) ?? 0.0,
+        'OfferName': _offerNameController.text,
+        'OfferInfo': _offerInfoController.text,
+        'OfferPrice': double.tryParse(_offerPriceController.text) ?? 0.0,
         'originalPrice': double.tryParse(_originalPriceController.text) ?? 0.0,
-        'photoUrl': _selectedFilePath,
+        'OfferPhoto': photoUrl,
         'venueId': venueId,
         'createdBy': _currentUserId,
+        'available': _isAvailable,
+        'maxRedemptions': int.tryParse(_maxItemController.text) ?? 0,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -186,9 +230,13 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
             .doc(_documentId)
             .update(offerData);
       } else {
-        // Create new document
+        // Create new document with deterministic id "OfferName-venueId"
         offerData['createdAt'] = FieldValue.serverTimestamp();
-        await FirebaseFirestore.instance.collection('offers').add(offerData);
+        final docId = '${_offerNameController.text.trim().replaceAll(' ', '_')}-$venueId';
+        await FirebaseFirestore.instance
+            .collection('offers')
+            .doc(docId)
+            .set(offerData);
       }
 
       if (widget.onCancel != null) {
@@ -207,6 +255,32 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
     }
   }
 
+  Future<void> _deleteOffer() async {
+    if (_documentId == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete offer'),
+        content: const Text('Are you sure you want to delete this offer?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('offers').doc(_documentId).delete();
+      if (widget.onCancel != null) widget.onCancel!();
+    } catch (e) {
+      print('Delete error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting offer: $e')),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _originalPriceController.removeListener(_updateSuggestedPrice);
@@ -214,6 +288,7 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
     _originalPriceController.dispose();
     _offerPriceController.dispose();
     _offerInfoController.dispose();
+    _maxItemController.dispose();
     super.dispose();
   }
 
@@ -285,6 +360,27 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
             const SizedBox(height: 20),
             _buildTextField(_offerInfoController, 'Offer info', maxLines: 3),
             const SizedBox(height: 20),
+            // Availability and Max Item
+            Row(
+              children: [
+                const Text('Available', style: TextStyle(color: Color(0xFFFCFDFF), fontSize: 14)),
+                const SizedBox(width: 12),
+                Switch(
+                  value: _isAvailable,
+                  activeColor: const Color(0xFFE9724C),
+                  onChanged: (val) {
+                    setState(() {
+                      _isAvailable = val;
+                    });
+                  },
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildTextField(_maxItemController, 'Max item', isNumeric: true),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -335,6 +431,24 @@ class _ItemCreationWidgetState extends State<ItemCreationWidget> {
                           ),
                   ),
                 ),
+                if (_documentId != null) ...[
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _deleteOffer,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                  ),
+                ]
               ],
             ),
             const SizedBox(height: 10),
