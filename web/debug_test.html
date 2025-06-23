@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Mobile Debug</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #222; 
+            color: #fff; 
+        }
+        .test-button { 
+            display: block; 
+            width: 100%; 
+            padding: 15px; 
+            margin: 10px 0; 
+            background: #333; 
+            color: #fff; 
+            border: 1px solid #666; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            cursor: pointer; 
+        }
+        .test-button:hover { background: #444; }
+        .result { 
+            background: #111; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid #C5C352; 
+            font-family: monospace; 
+            font-size: 12px; 
+            white-space: pre-wrap; 
+            word-break: break-all; 
+        }
+        .success { border-left-color: #4CAF50; }
+        .error { border-left-color: #f44336; }
+        .info { border-left-color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>Firestore Mobile Debug Tool</h1>
+    <p>Device: <span id="device-info"></span></p>
+    
+    <button class="test-button" onclick="testFirestoreConnection()">1. Test Firestore Connection</button>
+    <button class="test-button" onclick="testAllDocuments()">2. Test All Three Documents</button>
+    <button class="test-button" onclick="testDocumentDetails()">3. Get Document Details</button>
+    <button class="test-button" onclick="testNetworkConditions()">4. Test Network Conditions</button>
+    <button class="test-button" onclick="clearCache()">5. Clear Firestore Cache</button>
+    
+    <div id="results"></div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTgpaJ1UMaKd1TxMhunRsOlieN8mWpjM4",
+            authDomain: "locotag.firebaseapp.com",
+            projectId: "locotag",
+            storageBucket: "locotag.firebasestorage.app",
+            messagingSenderId: "783647689390",
+            appId: "1:783647689390:web:1b45930c96bc4beb863b3f",
+            measurementId: "G-MRF3817G7M"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Device detection
+        const userAgent = navigator.userAgent;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+        const isAndroid = /Android/.test(userAgent);
+        
+        document.getElementById('device-info').textContent = 
+            `${isMobile ? 'Mobile' : 'Desktop'} | ${isIOS ? 'iOS' : isAndroid ? 'Android' : 'Other'} | ${userAgent.substring(0, 100)}...`;
+
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+            console.log(message);
+        }
+
+        async function testFirestoreConnection() {
+            addResult('Testing Firestore connection...', 'info');
+            try {
+                // Try to read any document to test connection
+                const testQuery = await db.collection('userVenueProgress').limit(1).get();
+                addResult(`✓ Firestore connected! Found ${testQuery.docs.length} documents in collection`, 'success');
+                
+                // Test specific collection access
+                const collectionRef = db.collection('userVenueProgress');
+                addResult(`✓ Collection reference created: ${collectionRef.path}`, 'success');
+                
+            } catch (error) {
+                addResult(`✗ Firestore connection failed: ${error.message}`, 'error');
+                addResult(`Error details: ${JSON.stringify(error)}`, 'error');
+            }
+        }
+
+        async function testAllDocuments() {
+            addResult('Testing all three documents...', 'info');
+            
+            const testIds = [
+                'cd0MhGqIOvXVAHbxECxspcyac2O2-demo',
+                'cd0MhGqIOvXVAHbxECxspcyac2O2-doughbros',
+                'cd0MhGqIOvXVAHbxECxspcyac2O2-baked'
+            ];
+
+            for (const docId of testIds) {
+                try {
+                    addResult(`Testing document: ${docId}`, 'info');
+                    
+                    const startTime = Date.now();
+                    const docRef = db.collection('userVenueProgress').doc(docId);
+                    const doc = await docRef.get();
+                    const endTime = Date.now();
+                    
+                    if (doc.exists) {
+                        const data = doc.data();
+                        addResult(`✓ ${docId} EXISTS (${endTime - startTime}ms)`, 'success');
+                        addResult(`  - displayName: ${data.displayName || 'N/A'}`, 'success');
+                        addResult(`  - email: ${data.email || 'N/A'}`, 'success');
+                        addResult(`  - coin: ${data.coin || 'N/A'}`, 'success');
+                        addResult(`  - venueId: ${data.venueId || 'N/A'}`, 'success');
+                        addResult(`  - Data keys: ${Object.keys(data).join(', ')}`, 'success');
+                    } else {
+                        addResult(`✗ ${docId} DOES NOT EXIST (${endTime - startTime}ms)`, 'error');
+                    }
+                } catch (error) {
+                    addResult(`✗ Error accessing ${docId}: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testDocumentDetails() {
+            addResult('Getting detailed document information...', 'info');
+            
+            try {
+                // Get all documents in the collection
+                const querySnapshot = await db.collection('userVenueProgress').get();
+                addResult(`Total documents in collection: ${querySnapshot.docs.length}`, 'info');
+                
+                // Find documents that match our user ID
+                const userIdPrefix = 'cd0MhGqIOvXVAHbxECxspcyac2O2';
+                const matchingDocs = querySnapshot.docs.filter(doc => 
+                    doc.id.startsWith(userIdPrefix)
+                );
+                
+                addResult(`Documents matching user ID: ${matchingDocs.length}`, 'info');
+                
+                matchingDocs.forEach(doc => {
+                    const data = doc.data();
+                    addResult(`Found: ${doc.id}`, 'success');
+                    addResult(`  - displayName: ${data.displayName}`, 'success');
+                    addResult(`  - venueId: ${data.venueId}`, 'success');
+                });
+                
+            } catch (error) {
+                addResult(`Error getting document details: ${error.message}`, 'error');
+            }
+        }
+
+        async function testNetworkConditions() {
+            addResult('Testing network conditions...', 'info');
+            
+            // Test connection speed
+            const startTime = Date.now();
+            try {
+                await fetch('https://firestore.googleapis.com/v1/projects/locotag/databases/(default)/documents/userVenueProgress/cd0MhGqIOvXVAHbxECxspcyac2O2-baked');
+                const endTime = Date.now();
+                addResult(`✓ Direct API call successful (${endTime - startTime}ms)`, 'success');
+            } catch (error) {
+                addResult(`✗ Direct API call failed: ${error.message}`, 'error');
+            }
+            
+            // Test Firestore settings
+            addResult(`Firestore settings:`, 'info');
+            addResult(`  - Host: ${db._delegate._databaseId.projectId}`, 'info');
+            addResult(`  - SSL: ${db._delegate._settings.ssl}`, 'info');
+            
+            // Connection info
+            addResult(`Connection info:`, 'info');
+            addResult(`  - Online: ${navigator.onLine}`, 'info');
+            addResult(`  - Connection: ${navigator.connection ? navigator.connection.effectiveType : 'Unknown'}`, 'info');
+        }
+
+        async function clearCache() {
+            addResult('Clearing Firestore cache...', 'info');
+            try {
+                await db.clearPersistence();
+                addResult('✓ Firestore cache cleared', 'success');
+                addResult('Please refresh the page and test again', 'info');
+            } catch (error) {
+                addResult(`✗ Failed to clear cache: ${error.message}`, 'error');
+                addResult('Cache can only be cleared when no other tabs are using Firestore', 'info');
+            }
+        }
+
+        // Auto-run basic test on load
+        window.addEventListener('load', () => {
+            setTimeout(testFirestoreConnection, 1000);
+        });
+    </script>
+</body>
+</html> 

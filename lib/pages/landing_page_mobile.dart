@@ -10,8 +10,6 @@ import '/custom_code/widgets/venue_leaderboard_widget.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/full_screen_scanner_overlay.dart';
 import '../custom_code/widgets/user_scan_result_bottom_sheet.dart';
-import '/custom_code/widgets/offers_tab_content.dart';
-import '/custom_code/widgets/top_reward_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -185,7 +183,6 @@ class _LandingPageState extends State<LandingPage> {
                 // Main content with responsive layout
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 80),
                     child: isLargeScreen 
                         ? _buildDesktopLayout() 
                         : _buildMobileLayout(),
@@ -609,7 +606,66 @@ class _LandingPageState extends State<LandingPage> {
 
   // Widget to display Top Rewards 
   Widget _buildTopRewardsWidget() {
-    return TopRewardWidget(venueId: _selectedVenue ?? '');
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF363740),
+        borderRadius: BorderRadius.circular(31.0),
+      ),
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Top rewards',
+            style: TextStyle(
+              fontFamily: 'Roboto Flex',
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 22),
+          const Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reward',
+                      style: TextStyle(
+                        fontFamily: 'Roboto Flex',
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      'Capuccino',
+                      style: TextStyle(
+                        fontFamily: 'Roboto Flex',
+                        color: Color(0xFFC5C352),
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildMetricRow(
+            'Total orders / month',
+            '154',
+            const Color(0xFFBF9BF2),
+            'Total Spend',
+            r'$323',
+            const Color(0xFFF87C58),
+          ),
+        ],
+      ),
+    );
   }
 
   // Widget to display Clients
@@ -971,37 +1027,106 @@ class _LandingPageState extends State<LandingPage> {
 
   void _handleScannedQRCode(String code) async {
     try {
+      // Check for empty or invalid code
+      if (code.trim().isEmpty) {
+        throw Exception('Empty QR code detected. Please try scanning again.');
+      }
+
       String normalized = code.trim()
           .replaceAll(RegExp(r'[\s\n\r]'), '')
           .replaceAll(RegExp(r'[–—−]'), '-')
           .replaceAll(RegExp(r'[_|/]'), '-');
+
+      print('=== MOBILE QR SCAN DEBUG ===');
+      print('Raw scanned code: "$code"');
+      print('Normalized scanned code: "$normalized" (length: ${normalized.length})');
+
+      if (normalized.isEmpty) {
+        throw Exception('Invalid QR code format. Please try scanning again.');
+      }
 
       final parts = normalized.split('-');
       String docId;
       String userId;
       String venueId;
 
-      if (parts.length == 2) {
+      if (parts.length >= 2) {
         userId = parts[0];
-        venueId = parts[1];
+        // Handle venue names with dashes by joining all parts after the first one
+        venueId = parts.sublist(1).join('-');
         docId = '$userId-$venueId';
       } else {
+        // Fallback: use the entire code as docId
         docId = normalized;
-        final match = RegExp(r'^(.*?)-(.*)').firstMatch(docId);
-        userId = match != null ? match.group(1) ?? '' : '';
-        venueId = match != null ? match.group(2) ?? '' : '';
+        userId = '';
+        venueId = '';
       }
+      
+      print('QR Parts: $parts');
+      print('Parsed - userId: "$userId", venueId: "$venueId"');
+      print('Looking up userVenueProgress docId: "$docId" (length: ${docId.length})');
+      print('DocId bytes: ${docId.codeUnits}');
+      print('UserId bytes: ${userId.codeUnits}');
+      print('VenueId bytes: ${venueId.codeUnits}');
+
+      if (docId.isEmpty) {
+        throw Exception('Invalid document ID generated from QR code');
+      }
+      
+      // Test all three expected document IDs for comparison
+      final testIds = [
+        'cd0MhGqIOvXVAHbxECxspcyac2O2-demo',
+        'cd0MhGqIOvXVAHbxECxspcyac2O2-doughbros', 
+        'cd0MhGqIOvXVAHbxECxspcyac2O2-baked'
+      ];
+      
+      print('=== MOBILE DOCUMENT EXISTENCE TEST ===');
+      for (String testId in testIds) {
+        try {
+          final testDoc = await FirebaseFirestore.instance
+              .collection('userVenueProgress')
+              .doc(testId)
+              .get();
+          print('$testId exists: ${testDoc.exists}');
+          if (testDoc.exists) {
+            final testData = testDoc.data();
+            print('$testId data keys: ${testData?.keys.toList()}');
+            print('$testId displayName: ${testData?['displayName']}');
+          }
+        } catch (e) {
+          print('Error checking $testId: $e');
+        }
+      }
+      print('=== END MOBILE DOCUMENT TEST ===');
 
       final doc = await FirebaseFirestore.instance
           .collection('userVenueProgress')
           .doc(docId)
           .get();
 
+      print('Document exists: ${doc.exists}');
+      if (doc.exists) {
+        print('Document data keys: ${doc.data()?.keys.toList()}');
+        print('Document data: ${doc.data()}');
+      } else {
+        print('Document does not exist - checking collection...');
+        // Try to list some documents in the collection for debugging
+        final collectionQuery = await FirebaseFirestore.instance
+            .collection('userVenueProgress')
+            .limit(5)
+            .get();
+        print('Collection has ${collectionQuery.docs.length} documents');
+        for (var doc in collectionQuery.docs) {
+          print('Found doc ID: ${doc.id}');
+        }
+      }
+
       if (!doc.exists) {
         throw Exception('No userVenueProgress found for this user/venue');
       }
 
       final data = doc.data();
+      print('Final data for bottom sheet: $data');
 
       if (!mounted) return;
 
