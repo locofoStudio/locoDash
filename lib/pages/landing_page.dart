@@ -16,6 +16,7 @@ import '/custom_code/widgets/venue_coin_earned_widget.dart';
 import '/custom_code/widgets/loyalty_stats_widget.dart';
 import '../services/auth_service.dart';
 import '/custom_code/widgets/offers_tab_content.dart';
+import '/custom_code/widgets/top_reward_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -465,7 +466,7 @@ class _LandingPageState extends State<LandingPage> {
                         showPreviewData: false,
                       ),
                       const SizedBox(height: 14),
-                      _buildTopRewardsWidget(),
+                      TopRewardWidget(venueId: _selectedVenue ?? ''),
                       const SizedBox(height: 14),
                       TopPlayersCard(venueId: _selectedVenue ?? ''),
                     ],
@@ -677,7 +678,7 @@ class _LandingPageState extends State<LandingPage> {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 100), // Extra bottom padding for QR footer
       child: Column(
         children: [
           VenueUserMetricsWidget(
@@ -715,7 +716,7 @@ class _LandingPageState extends State<LandingPage> {
             },
           ),
           const SizedBox(height: 14),
-          _buildTopRewardsWidget(),
+          TopRewardWidget(venueId: _selectedVenue ?? ''),
           const SizedBox(height: 14),
           TopPlayersCard(venueId: _selectedVenue!),
         ],
@@ -734,7 +735,7 @@ class _LandingPageState extends State<LandingPage> {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 100), // Extra bottom padding for QR footer
       child: Column(
         children: [
           VenueUserMetricsWidget(
@@ -765,7 +766,7 @@ class _LandingPageState extends State<LandingPage> {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 100), // Extra bottom padding for QR footer
       child: VenueLeaderboardWidget(
         venueId: _selectedVenue!,
         showPreviewData: false,
@@ -777,7 +778,10 @@ class _LandingPageState extends State<LandingPage> {
 
   // Mobile layout for offers tab
   Widget _buildOffersTab() {
-    return OffersTabContent(venueId: _selectedVenue ?? '');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 100), // Extra bottom padding for QR footer
+      child: OffersTabContent(venueId: _selectedVenue ?? ''),
+    );
   }
 
   // Widget to display Rewards Collected metrics
@@ -833,70 +837,7 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
-  // Widget to display Top Rewards 
-  Widget _buildTopRewardsWidget() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFF363740),
-        borderRadius: BorderRadius.circular(31.0),
-      ),
-      margin: EdgeInsets.zero, // Remove margin as padding is now handled by the parent
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Top rewards',
-            style: TextStyle(
-              fontFamily: 'Roboto Flex',
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 22),
-          const Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Reward',
-                      style: TextStyle(
-                        fontFamily: 'Roboto Flex',
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      'Capuccino',
-                      style: TextStyle(
-                        fontFamily: 'Roboto Flex',
-                        color: Color(0xFFC5C352),
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildMetricRow(
-            'Total orders / month',
-            '154',
-            const Color(0xFFBF9BF2),
-            'Total Spend',
-            r'$323',
-            const Color(0xFFF87C58),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   // Widget to display Clients
   Widget _buildClientsWidget() {

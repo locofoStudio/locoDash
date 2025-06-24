@@ -94,13 +94,7 @@
     <div id="qr-result">Position QR code within the frame</div>
     <div class="debug-info" id="debug"></div>
     
-    <!-- Test buttons for debugging -->
-    <div id="test-buttons" style="position: absolute; bottom: 20px; left: 20px; z-index: 1000;">
-      <p style="color: #fff; font-size: 14px; margin: 0 0 10px 0;">Manual Test:</p>
-      <button onclick="testQR('cd0MhGqIOvXVAHbxECxspcyac2O2-demo')" style="background: #333; color: #fff; border: 1px solid #666; padding: 12px; margin: 4px; border-radius: 6px; font-size: 14px; display: block; width: 120px;">Test Demo</button>
-      <button onclick="testQR('cd0MhGqIOvXVAHbxECxspcyac2O2-doughbros')" style="background: #333; color: #fff; border: 1px solid #666; padding: 12px; margin: 4px; border-radius: 6px; font-size: 14px; display: block; width: 120px;">Test Doughbros</button>
-      <button onclick="testQR('cd0MhGqIOvXVAHbxECxspcyac2O2-baked')" style="background: #333; color: #fff; border: 1px solid #666; padding: 12px; margin: 4px; border-radius: 6px; font-size: 14px; display: block; width: 120px;">Test Baked</button>
-    </div>
+
 
     <script>
       const video = document.getElementById('video');
@@ -132,22 +126,7 @@
         window.parent.postMessage({ type: 'qr_cancel' }, '*');
       }
       
-      function testQR(qrCode) {
-        console.log('=== MANUAL QR TEST ===');
-        console.log('Testing QR code:', qrCode);
-        console.log('QR Code length:', qrCode.length);
-        console.log('QR Code bytes:', Array.from(qrCode).map(c => c.charCodeAt(0)));
-        
-        updateDebug('Testing: ' + qrCode);
-        resultDiv.textContent = 'Testing: ' + qrCode;
-        
-        // Send test result
-        scanning = false;
-        window.parent.postMessage({ 
-          type: 'qr_scanned', 
-          data: qrCode 
-        }, '*');
-      }
+
       
       async function startCamera() {
         try {
@@ -238,15 +217,6 @@
           updateDebug('Camera error: ' + err.message);
           resultDiv.textContent = 'Camera access denied. Please allow camera access and refresh.';
           console.error('Camera startup error:', err);
-          
-                     // Show manual test buttons more prominently
-           const testButtons = document.getElementById('test-buttons');
-           if (testButtons) {
-             testButtons.style.background = 'rgba(0,0,0,0.8)';
-             testButtons.style.padding = '15px';
-             testButtons.style.borderRadius = '8px';
-             testButtons.style.border = '2px solid #C5C352';
-           }
         }
       }
       
