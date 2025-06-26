@@ -181,7 +181,11 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
 
       // First pass: gather all verified users
       for (var doc in query.docs) {
-        final userId = doc.id;
+        final data = doc.data();
+        
+        // Get userId directly from document data
+        final userId = data['userId'] as String?;
+        if (userId == null) continue;
         if (!isSignedUpUser.containsKey(userId)) {
           final userDoc = await FirebaseFirestore.instance
               .collection('users')
@@ -220,7 +224,10 @@ class _VenueActivityChartWidgetState extends State<VenueActivityChartWidget> {
       };
       for (var doc in sortedDocs) {
         final data = doc.data();
-        final userId = doc.id;
+        
+        // Get userId directly from document data
+        final userId = data['userId'] as String?;
+        if (userId == null) continue;
 
         final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) continue;

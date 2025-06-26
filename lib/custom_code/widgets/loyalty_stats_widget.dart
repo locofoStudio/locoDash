@@ -63,7 +63,10 @@ class TopPlayersCard extends StatelessWidget {
           final Map<String, Map<String, dynamic>> userStats = {};
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final userId = data['userId'] ?? doc.id;
+            
+            // Get userId directly from document data
+            final userId = data['userId'] as String?;
+            if (userId == null) continue;
             // Ensure userStats[userId] is initialized
             Map<String, dynamic> user = userStats[userId] ?? {
               'high_score': 0,

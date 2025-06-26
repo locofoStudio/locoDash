@@ -4,10 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '/custom_code/widgets/venue_coins_metrics_widget.dart';
 import '/custom_code/widgets/venue_stats_widget.dart';
-import '/custom_code/widgets/venue_activity_chart_widget.dart';
 import '/custom_code/widgets/venue_clients_widget.dart';
 import '/custom_code/widgets/users_list_widget.dart';
 import '/custom_code/widgets/venue_leaderboard_widget.dart';
+import '/custom_code/widgets/real_time_session_widget.dart';
+import '/custom_code/widgets/feature_usage_heatmap_widget.dart';
+import '/custom_code/widgets/engagement_score_widget.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/full_screen_scanner_overlay.dart';
 import '/custom_code/widgets/user_scan_result_bottom_sheet.dart';
@@ -46,10 +48,10 @@ class _LandingPageState extends State<LandingPage> {
 
   Future<void> _debugPrintUserVenueProgress(String venueId) async {
     final query = await FirebaseFirestore.instance
-        .collection('userVenueProgress')
+        .collection('user_venue_progress')
         .where('venueId', isEqualTo: venueId)
         .get();
-    print('--- All userVenueProgress for venueId=$venueId ---');
+    print('--- All user_venue_progress for venueId=$venueId ---');
     for (var doc in query.docs) {
       print('DocId: ${doc.id}');
       print('Data: ${doc.data()}');
@@ -400,6 +402,7 @@ class _LandingPageState extends State<LandingPage> {
       padding: const EdgeInsets.all(14),
       child: Column(
         children: [
+          // First row - original layout
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -427,32 +430,17 @@ class _LandingPageState extends State<LandingPage> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                // Center column: Activity and Clients stacked
+                // Center column: Clients widget only (removed activity chart)
                 Expanded(
                   flex: 2,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: VenueActivityChartWidget(
-                          venueId: _selectedVenue ?? '',
-                          showPreviewData: true,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Expanded(
-                        flex: 1,
-                        child: VenueClientsWidget(
-                          venueId: _selectedVenue ?? '',
-                          showPreviewData: true,
-                          onNavigateToUsersTab: () {
-                            setState(() {
-                              _selectedIndex = 1;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
+                  child: VenueClientsWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: true,
+                    onNavigateToUsersTab: () {
+                      setState(() {
+                        _selectedIndex = 1;
+                      });
+                    },
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -475,6 +463,45 @@ class _LandingPageState extends State<LandingPage> {
               ],
             ),
           ),
+          
+          const SizedBox(height: 14),
+          
+          // Second row - new analytics widgets
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Real-time session monitor
+                Expanded(
+                  flex: 1,
+                  child: RealTimeSessionWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Feature usage heatmap
+                Expanded(
+                  flex: 1,
+                  child: FeatureUsageHeatmapWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Engagement score
+                Expanded(
+                  flex: 1,
+                  child: EngagementScoreWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+
         ],
       ),
     );
@@ -701,11 +728,6 @@ class _LandingPageState extends State<LandingPage> {
             showPreviewData: false,
           ),
           const SizedBox(height: 14),
-          VenueActivityChartWidget(
-            venueId: _selectedVenue!,
-            showPreviewData: true, // Use preview data for reliable display
-          ),
-          const SizedBox(height: 14),
           VenueClientsWidget(
             venueId: _selectedVenue!,
             showPreviewData: false, // Use real data from Firebase
@@ -719,6 +741,23 @@ class _LandingPageState extends State<LandingPage> {
           TopRewardWidget(venueId: _selectedVenue ?? ''),
           const SizedBox(height: 14),
           TopPlayersCard(venueId: _selectedVenue!),
+          
+          // New analytics widgets
+          const SizedBox(height: 14),
+          RealTimeSessionWidget(
+            venueId: _selectedVenue!,
+            showPreviewData: false,
+          ),
+          const SizedBox(height: 14),
+          FeatureUsageHeatmapWidget(
+            venueId: _selectedVenue!,
+            showPreviewData: false,
+          ),
+          const SizedBox(height: 14),
+          EngagementScoreWidget(
+            venueId: _selectedVenue!,
+            showPreviewData: false,
+          ),
         ],
       ),
     );
@@ -836,8 +875,6 @@ class _LandingPageState extends State<LandingPage> {
       ),
     );
   }
-
-
 
   // Widget to display Clients
   Widget _buildClientsWidget() {

@@ -81,7 +81,9 @@ class _VenueClientsWidgetState extends State<VenueClientsWidget> {
       Map<String, Map<String, dynamic>> userStats = {};
       for (var doc in venueProgressQuery.docs) {
         final data = doc.data();
-        final userId = doc.id;
+        // Get userId directly from document data
+        final userId = data['userId'] as String?;
+        if (userId == null) continue;
         final email = data['email'] ?? '';
         if (email == null || (email is String && email.trim().isEmpty)) {
           continue;

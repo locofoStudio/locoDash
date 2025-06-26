@@ -47,8 +47,13 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
     'weekly': 0,
     'daily': 0,
     'total': 0,
+    'monthlyAnonymous': 0,
+    'weeklyAnonymous': 0,
+    'dailyAnonymous': 0,
+    'totalAnonymous': 0,
   };
   bool _isLoading = true;
+  bool _showInfo = false;
 
   @override
   void initState() {
@@ -74,6 +79,10 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
           'weekly': 0,
           'daily': 0,
           'total': 0,
+          'monthlyAnonymous': 0,
+          'weeklyAnonymous': 0,
+          'dailyAnonymous': 0,
+          'totalAnonymous': 0,
         };
         _isLoading = false;
       });
@@ -104,20 +113,40 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       Set<String> weeklyUsers = {};
       Set<String> dailyUsers = {};
       Set<String> totalUsers = {};
+      Set<String> monthlyAnonymous = {};
+      Set<String> weeklyAnonymous = {};
+      Set<String> dailyAnonymous = {};
+      Set<String> totalAnonymous = {};
+
+      // Track users we need to check for anonymous status
+      Map<String, DateTime> userCreatedTimes = {};
 
       for (var doc in userVenueProgressQuery.docs) {
         final data = doc.data();
-        final userId = doc.id;
-        print('VenueUserMetricsWidget: Processing document $userId');
+        final docId = doc.id;
+        print('VenueUserMetricsWidget: Processing document $docId');
         print('VenueUserMetricsWidget: Document data: $data');
         
         final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
         if (createdTime == null) {
-          print('VenueUserMetricsWidget: No createdTime for user $userId, skipping');
+          print('VenueUserMetricsWidget: No createdTime for document $docId, skipping');
           continue;
         }
         
+        // Get userId and userType directly from document data
+        final userId = data['userId'] as String?;
+        final userType = data['userType'] as String?;
+        
+        print('VenueUserMetricsWidget: userId=$userId, userType=$userType');
+        
+        if (userId == null) {
+          print('VenueUserMetricsWidget: No userId in document $docId, skipping');
+          continue;
+        }
+        
+        userCreatedTimes[userId] = createdTime;
         totalUsers.add(userId);
+        
         if (createdTime.isAfter(startOfMonth)) {
           monthlyUsers.add(userId);
           print('VenueUserMetricsWidget: User $userId added to monthly users');
@@ -130,6 +159,26 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
           dailyUsers.add(userId);
           print('VenueUserMetricsWidget: User $userId added to daily users');
         }
+        
+        // Check if this is an anonymous user (by userType OR displayName)
+        final displayName = data['displayName'] as String?;
+        
+        if (userType == 'anonymous' || displayName == 'Guest') {
+          print('VenueUserMetricsWidget: Found anonymous user $userId (userType: $userType, displayName: $displayName)');
+          totalAnonymous.add(userId);
+          
+          if (createdTime.isAfter(startOfMonth)) {
+            monthlyAnonymous.add(userId);
+          }
+          if (createdTime.isAfter(startOfWeek)) {
+            weeklyAnonymous.add(userId);
+          }
+          if (createdTime.isAfter(startOfDay)) {
+            dailyAnonymous.add(userId);
+          }
+        } else {
+          print('VenueUserMetricsWidget: User $userId is not anonymous (userType: $userType, displayName: $displayName)');
+        }
       }
 
       if (mounted) {
@@ -139,6 +188,10 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
             'weekly': weeklyUsers.length,
             'daily': dailyUsers.length,
             'total': totalUsers.length,
+            'monthlyAnonymous': monthlyAnonymous.length,
+            'weeklyAnonymous': weeklyAnonymous.length,
+            'dailyAnonymous': dailyAnonymous.length,
+            'totalAnonymous': totalAnonymous.length,
           };
           _isLoading = false;
         });
@@ -167,77 +220,246 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),
       ),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title
-            Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
-              child: Text(
-                'Users',
-                style: TextStyle(
-                  fontFamily: 'Roboto Flex',
-                  color: widget.textColor,
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.bold,
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
+            child: _showInfo ? _buildInfoView() : _buildDataView(),
+          ),
+          // Info/Close button
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showInfo = !_showInfo;
+                });
+              },
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: widget.textColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  _showInfo ? Icons.close : Icons.info_outline,
+                  color: widget.textColor.withOpacity(0.7),
+                  size: 18,
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Two-column layout for metrics
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left column
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Monthly section
-                      _buildMetricSection(
-                        'Monthly Users',
-                        _isLoading ? '000' : _userMetrics['monthly'].toString().padLeft(3, '0'),
-                        widget.monthlyColor,
-                      ),
-                      
-                      // Weekly section
-                      _buildMetricSection(
-                        'Week',
-                        _isLoading ? '000' : _userMetrics['weekly'].toString().padLeft(3, '0'),
-                        widget.weeklyColor,
-                      ),
-                    ],
+  Widget _buildDataView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Title
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
+          child: Text(
+            'Users',
+            style: TextStyle(
+              fontFamily: 'Roboto Flex',
+              color: widget.textColor,
+              fontSize: 24.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+
+        // Two-column layout for metrics
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left column - Regular Users
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Registered Users',
+                    style: TextStyle(
+                      fontFamily: 'Roboto Flex',
+                      color: widget.textColor.withOpacity(0.8),
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                
-                // Right column
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Today section (was Live)
-                      _buildMetricSection(
-                        'Today',
-                        _isLoading ? '000' : _userMetrics['daily'].toString().padLeft(3, '0'),
-                        widget.dailyColor,
-                      ),
-                      
-                      // Total section
-                      _buildMetricSection(
-                        'Total',
-                        _isLoading ? '000' : _userMetrics['total'].toString().padLeft(3, '0'),
-                        widget.totalColor,
-                      ),
-                    ],
+                  const SizedBox(height: 12),
+                  // Monthly section
+                  _buildMetricSection(
+                    'Monthly',
+                    _isLoading ? '000' : (_userMetrics['monthly']! - _userMetrics['monthlyAnonymous']!).toString().padLeft(3, '0'),
+                    widget.monthlyColor,
                   ),
-                ),
-              ],
+                  
+                  // Weekly section
+                  _buildMetricSection(
+                    'Week',
+                    _isLoading ? '000' : (_userMetrics['weekly']! - _userMetrics['weeklyAnonymous']!).toString().padLeft(3, '0'),
+                    widget.weeklyColor,
+                  ),
+                  
+                  // Today section
+                  _buildMetricSection(
+                    'Today',
+                    _isLoading ? '000' : (_userMetrics['daily']! - _userMetrics['dailyAnonymous']!).toString().padLeft(3, '0'),
+                    widget.dailyColor,
+                  ),
+                  
+                  // Total section
+                  _buildMetricSection(
+                    'Total',
+                    _isLoading ? '000' : (_userMetrics['total']! - _userMetrics['totalAnonymous']!).toString().padLeft(3, '0'),
+                    widget.totalColor,
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(width: 24),
+            
+            // Right column - Anonymous Users
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Anonymous Users',
+                    style: TextStyle(
+                      fontFamily: 'Roboto Flex',
+                      color: widget.textColor.withOpacity(0.8),
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Monthly Anonymous section
+                  _buildMetricSection(
+                    'Monthly',
+                    _isLoading ? '000' : _userMetrics['monthlyAnonymous'].toString().padLeft(3, '0'),
+                    widget.monthlyColor.withOpacity(0.7),
+                  ),
+                  
+                  // Weekly Anonymous section
+                  _buildMetricSection(
+                    'Week',
+                    _isLoading ? '000' : _userMetrics['weeklyAnonymous'].toString().padLeft(3, '0'),
+                    widget.weeklyColor.withOpacity(0.7),
+                  ),
+                  
+                  // Today Anonymous section
+                  _buildMetricSection(
+                    'Today',
+                    _isLoading ? '000' : _userMetrics['dailyAnonymous'].toString().padLeft(3, '0'),
+                    widget.dailyColor.withOpacity(0.7),
+                  ),
+                  
+                  // Total Anonymous section
+                  _buildMetricSection(
+                    'Total',
+                    _isLoading ? '000' : _userMetrics['totalAnonymous'].toString().padLeft(3, '0'),
+                    widget.totalColor.withOpacity(0.7),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildInfoView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'User Metrics',
+          style: TextStyle(
+            fontFamily: 'Roboto Flex',
+            color: widget.textColor,
+            fontSize: 20.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'This widget tracks unique users who have visited your venue:',
+          style: TextStyle(
+            fontFamily: 'Roboto Flex',
+            color: widget.textColor.withOpacity(0.9),
+            fontSize: 14.0,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildInfoItem('Monthly Users', 'Unique visitors in the last 30 days'),
+        _buildInfoItem('Week', 'Unique visitors in the last 7 days'),
+        _buildInfoItem('Today', 'Unique visitors today'),
+        _buildInfoItem('Total', 'All-time unique visitors'),
+        const SizedBox(height: 12),
+        Text(
+          'Users are counted when they first interact with your venue page. Each user is only counted once per time period.',
+          style: TextStyle(
+            fontFamily: 'Roboto Flex',
+            color: widget.textColor.withOpacity(0.7),
+            fontSize: 12.0,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoItem(String label, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '• ',
+            style: TextStyle(
+              fontFamily: 'Roboto Flex',
+              color: widget.textColor.withOpacity(0.7),
+              fontSize: 14.0,
+            ),
+          ),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: TextStyle(
+                      fontFamily: 'Roboto Flex',
+                      color: widget.textColor,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  TextSpan(
+                    text: description,
+                    style: TextStyle(
+                      fontFamily: 'Roboto Flex',
+                      color: widget.textColor.withOpacity(0.8),
+                      fontSize: 14.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -54,6 +54,7 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
     'totalCoins': 0,
   };
   bool _isLoading = true;
+  bool _showInfo = false;
 
   @override
   void initState() {
@@ -178,91 +179,210 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
         color: widget.backgroundColor,
         borderRadius: BorderRadius.circular(31.0),
       ),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title
-            Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
-              child: Text(
-                'Coins distributed',
-                style: TextStyle(
-                  fontFamily: 'Roboto Flex',
-                  color: widget.textColor,
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.bold,
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(32.0, 32.0, 32.0, 32.0),
+            child: _showInfo ? _buildInfoView() : _buildDataView(),
+          ),
+          // Info/Close button
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showInfo = !_showInfo;
+                });
+              },
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: widget.textColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  _showInfo ? Icons.close : Icons.info_outline,
+                  color: widget.textColor.withOpacity(0.7),
+                  size: 18,
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Two-column layout for metrics
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left column
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Monthly section
-                      _buildMetricSection(
-                        'Monthly',
-                        _metricsData['monthly'].toString(),
-                        widget.monthlyColor,
-                      ),
-                      
-                      // Weekly section
-                      _buildMetricSection(
-                        'Weekly',
-                        _metricsData['weekly'].toString(),
-                        widget.weeklyColor,
-                      ),
-                      
-                      // Today section (was Daily)
-                      _buildMetricSection(
-                        'Today',
-                        _metricsData['daily'].toString(),
-                        widget.dailyColor,
-                      ),
-                    ],
+  Widget _buildDataView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Title
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 24.0),
+          child: Text(
+            'Coins distributed',
+            style: TextStyle(
+              fontFamily: 'Roboto Flex',
+              color: widget.textColor,
+              fontSize: 24.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+
+        // Two-column layout for metrics
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left column
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Monthly section
+                  _buildMetricSection(
+                    'Monthly',
+                    _metricsData['monthly'].toString(),
+                    widget.monthlyColor,
                   ),
-                ),
-                
-                // Right column
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Coin value section
-                      _buildMetricSection(
-                        'Coin value',
-                        '\$${widget.coinValue.toStringAsFixed(2)}',
-                        Colors.white,
-                      ),
-                      
-                      // Total Coins section
-                      _buildMetricSection(
-                        'Total Coins',
-                        _metricsData['totalCoins'].toString(),
-                        widget.totalCoinsColor,
-                      ),
-                      
-                      // Total Spent section
-                      _buildMetricSection(
-                        'Total Spent',
-                        '\$${_metricsData['totalSpent'].toStringAsFixed(0)}',
-                        widget.totalSpendColor,
-                      ),
-                    ],
+                  
+                  // Weekly section
+                  _buildMetricSection(
+                    'Weekly',
+                    _metricsData['weekly'].toString(),
+                    widget.weeklyColor,
                   ),
-                ),
-              ],
+                  
+                  // Today section (was Daily)
+                  _buildMetricSection(
+                    'Today',
+                    _metricsData['daily'].toString(),
+                    widget.dailyColor,
+                  ),
+                ],
+              ),
+            ),
+            
+            // Right column
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Coin value section
+                  _buildMetricSection(
+                    'Coin value',
+                    '\$${widget.coinValue.toStringAsFixed(2)}',
+                    Colors.white,
+                  ),
+                  
+                  // Total Coins section
+                  _buildMetricSection(
+                    'Total Coins',
+                    _metricsData['totalCoins'].toString(),
+                    widget.totalCoinsColor,
+                  ),
+                  
+                  // Total Spent section
+                  _buildMetricSection(
+                    'Total Spent',
+                    '\$${_metricsData['totalSpent'].toStringAsFixed(0)}',
+                    widget.totalSpendColor,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildInfoView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Coins Distributed',
+          style: TextStyle(
+            fontFamily: 'Roboto Flex',
+            color: widget.textColor,
+            fontSize: 20.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'This widget tracks loyalty coins distributed to users by your venue:',
+          style: TextStyle(
+            fontFamily: 'Roboto Flex',
+            color: widget.textColor.withOpacity(0.9),
+            fontSize: 14.0,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildInfoItem('Monthly/Weekly/Today', 'Coins distributed in each time period'),
+        _buildInfoItem('Coin Value', 'Monetary value per coin (\$${widget.coinValue.toStringAsFixed(2)})'),
+        _buildInfoItem('Total Coins', 'All-time coins distributed'),
+        _buildInfoItem('Total Spent', 'Total monetary value distributed'),
+        const SizedBox(height: 12),
+        Text(
+          'Coins are tracked when users earn them through venue interactions. This helps you understand your loyalty program\'s reach and impact.',
+          style: TextStyle(
+            fontFamily: 'Roboto Flex',
+            color: widget.textColor.withOpacity(0.7),
+            fontSize: 12.0,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoItem(String label, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '• ',
+            style: TextStyle(
+              fontFamily: 'Roboto Flex',
+              color: widget.textColor.withOpacity(0.7),
+              fontSize: 14.0,
+            ),
+          ),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: TextStyle(
+                      fontFamily: 'Roboto Flex',
+                      color: widget.textColor,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  TextSpan(
+                    text: description,
+                    style: TextStyle(
+                      fontFamily: 'Roboto Flex',
+                      color: widget.textColor.withOpacity(0.8),
+                      fontSize: 14.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

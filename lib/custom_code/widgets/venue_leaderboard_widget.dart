@@ -406,7 +406,9 @@ class _VenueLeaderboardWidgetState extends State<VenueLeaderboardWidget> {
       Map<String, Map<String, dynamic>> userStats = {};
       for (var doc in usersQuery.docs) {
         final data = doc.data();
-        final userId = doc.id;
+        // Get userId directly from document data
+        final userId = data['userId'] as String?;
+        if (userId == null) continue;
         final email = data['email'] ?? '';
         if (email == null || (email is String && email.trim().isEmpty)) {
           continue;
