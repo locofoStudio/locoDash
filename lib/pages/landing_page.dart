@@ -19,6 +19,8 @@ import '/custom_code/widgets/loyalty_stats_widget.dart';
 import '../services/auth_service.dart';
 import '/custom_code/widgets/offers_tab_content.dart';
 import '/custom_code/widgets/top_reward_widget.dart';
+import '/custom_code/widgets/activity_timeline_widget.dart';
+import '/custom_code/widgets/insights_dashboard_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -136,6 +138,28 @@ class _LandingPageState extends State<LandingPage> {
     return venueId.substring(0, 1).toUpperCase() + venueId.substring(1);
   }
 
+  // Handle logout functionality
+  Future<void> _handleLogout(BuildContext context) async {
+    try {
+      await _authService.signOut();
+      // Navigate to login page
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      print('Error during logout: $e');
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error logging out: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Check if the screen is mobile or larger (tablet/desktop)
@@ -152,12 +176,12 @@ class _LandingPageState extends State<LandingPage> {
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Loco Dashboard',
+                Text(
+                  'Dashboard',
                   style: TextStyle(
                     fontFamily: 'Roboto Flex',
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: ResponsiveHelper.isMobile(context) ? 18 : 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -169,6 +193,10 @@ class _LandingPageState extends State<LandingPage> {
               IconButton(
                 icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
                 onPressed: () => _openScannerModal(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.white),
+                onPressed: () => _handleLogout(context),
               ),
             ],
             centerTitle: false,
@@ -501,6 +529,33 @@ class _LandingPageState extends State<LandingPage> {
             ),
           ),
           
+          const SizedBox(height: 14),
+          
+          // Third row - New stylish analytics widgets
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Activity Timeline Widget
+                Expanded(
+                  flex: 1,
+                  child: ActivityTimelineWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Insights Dashboard Widget
+                Expanded(
+                  flex: 1,
+                  child: InsightsDashboardWidget(
+                    venueId: _selectedVenue ?? '',
+                    showPreviewData: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
 
         ],
       ),
@@ -755,6 +810,18 @@ class _LandingPageState extends State<LandingPage> {
           ),
           const SizedBox(height: 14),
           EngagementScoreWidget(
+            venueId: _selectedVenue!,
+            showPreviewData: false,
+          ),
+          
+          // New stylish analytics widgets
+          const SizedBox(height: 14),
+          ActivityTimelineWidget(
+            venueId: _selectedVenue!,
+            showPreviewData: false,
+          ),
+          const SizedBox(height: 14),
+          InsightsDashboardWidget(
             venueId: _selectedVenue!,
             showPreviewData: false,
           ),

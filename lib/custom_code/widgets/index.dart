@@ -9,4 +9,6 @@ export 'real_time_session_widget.dart';
 export 'feature_usage_heatmap_widget.dart';
 export 'engagement_score_widget.dart';
 export 'anonymous_user_analytics_widget.dart';
-export 'google_review_management_widget.dart'; 
+export 'google_review_management_widget.dart';
+export 'activity_timeline_widget.dart';
+export 'insights_dashboard_widget.dart'; 
