@@ -138,19 +138,20 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
         totalSessions += sessions;
         print('User $userId: sessions=$sessions');
 
-        // Get coins from multiple possible fields
+        // Get total coins - use 'coin' field as it represents the total
         int coins = 0;
-        if (data['coins'] != null && data['coins'] is int) {
-          coins += data['coins'] as int;
-        }
         if (data['coin'] != null && data['coin'] is int) {
-          coins += data['coin'] as int;
-        }
-        if (data['coinsFromGame'] != null && data['coinsFromGame'] is int) {
-          coins += data['coinsFromGame'] as int;
-        }
-        if (data['coinsFromVenue'] != null && data['coinsFromVenue'] is int) {
-          coins += data['coinsFromVenue'] as int;
+          coins = data['coin'] as int;
+        } else if (data['coins'] != null && data['coins'] is int) {
+          coins = data['coins'] as int;
+        } else {
+          // Fallback: if no total field, sum the components
+          if (data['coinsFromGame'] != null && data['coinsFromGame'] is int) {
+            coins += data['coinsFromGame'] as int;
+          }
+          if (data['coinsFromVenue'] != null && data['coinsFromVenue'] is int) {
+            coins += data['coinsFromVenue'] as int;
+          }
         }
         totalCoins += coins;
         print('User $userId: coins=$coins');
