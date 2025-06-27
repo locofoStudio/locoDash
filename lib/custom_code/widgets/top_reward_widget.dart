@@ -1,6 +1,7 @@
 // lib/custom_code/widgets/top_reward_widget.dart
 // This widget displays the venue's top reward (offer with most redeems) and related metrics.
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -8,7 +9,7 @@ class TopRewardWidget extends StatefulWidget {
   const TopRewardWidget({
     super.key,
     required this.venueId,
-    this.coinValue = 0.10,
+    this.coinValue = 0.08,
     this.backgroundColor = const Color(0xFF363740),
     this.textColor = Colors.white,
     this.rewardColor = const Color(0xFFC5C352),
@@ -29,58 +30,91 @@ class TopRewardWidget extends StatefulWidget {
 }
 
 class _TopRewardWidgetState extends State<TopRewardWidget> {
-  late Future<_TopRewardData?> _futureData;
+  StreamSubscription? _subscription;
+  _TopRewardData? _topRewardData;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _futureData = _fetchTopReward();
+    _subscribeToTopReward();
   }
 
   @override
   void didUpdateWidget(covariant TopRewardWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.venueId != widget.venueId) {
-      _futureData = _fetchTopReward();
+      _subscribeToTopReward();
     }
   }
 
-  Future<_TopRewardData?> _fetchTopReward() async {
-    if (widget.venueId.isEmpty) return null;
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
 
-    try {
-      final offersQuery = await FirebaseFirestore.instance
-          .collection('offers')
-          .where('venueId', isEqualTo: widget.venueId)
-          .get();
+  void _subscribeToTopReward() {
+    _subscription?.cancel();
+    setState(() => _isLoading = true);
 
-      _TopRewardData? topReward;
+    if (widget.venueId.isEmpty) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
-      for (var doc in offersQuery.docs) {
-        final data = doc.data();
-        final List redeemedUsers = data['redeemedUsers'] is List
-            ? data['redeemedUsers'] as List
-            : [];
-        final int redeemedCount = redeemedUsers.length;
-        final String offerName = data['OfferName']?.toString() ?? 'Unknown';
-        final double price = (data['OfferPrice'] is num)
-            ? (data['OfferPrice'] as num).toDouble()
-            : 0.0;
+    // Combined stream of users and offers
+    final usersStream = FirebaseFirestore.instance
+        .collection('userVenueProgress')
+        .where('venueId', isEqualTo: widget.venueId)
+        .snapshots();
 
-        if (topReward == null || redeemedCount > topReward.redeemedCount) {
-          topReward = _TopRewardData(
-            offerName: offerName,
-            redeemedCount: redeemedCount,
-            offerPrice: price,
-          );
+    _subscription = usersStream.listen((usersSnapshot) async {
+      final offerStats = <String, ({int count, double price})>{};
+
+      for (var userDoc in usersSnapshot.docs) {
+        final userData = userDoc.data();
+        if (userData['offers'] is List) {
+          final userOffers = userData['offers'] as List;
+          for (var offerData in userOffers) {
+            if (offerData is Map<String, dynamic>) {
+              final name = offerData['name'] as String?;
+              final price = (offerData['price'] as num?)?.toDouble() ?? 0.0;
+              if (name != null) {
+                final current = offerStats[name] ?? (count: 0, price: price);
+                offerStats[name] = (count: current.count + 1, price: current.price);
+              }
+            }
+          }
         }
       }
 
-      return topReward;
-    } catch (e) {
+      if (offerStats.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _topRewardData = null;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final topOfferEntry = offerStats.entries.reduce((a, b) => a.value.count > b.value.count ? a : b);
+      
+      if (mounted) {
+        setState(() {
+          _topRewardData = _TopRewardData(
+            offerName: topOfferEntry.key,
+            redeemedCount: topOfferEntry.value.count,
+            offerPrice: topOfferEntry.value.price,
+          );
+          _isLoading = false;
+        });
+      }
+    }, onError: (e) {
       debugPrint('Error fetching top reward: $e');
-      return null;
-    }
+      if (mounted) setState(() => _isLoading = false);
+    });
   }
 
   @override
@@ -92,13 +126,12 @@ class _TopRewardWidgetState extends State<TopRewardWidget> {
         borderRadius: BorderRadius.circular(31.0),
       ),
       padding: const EdgeInsets.all(32),
-      child: FutureBuilder<_TopRewardData?>(
-        future: _futureData,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      child: Builder(
+        builder: (context) {
+          if (_isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          final data = snapshot.data;
+          final data = _topRewardData;
           if (data == null) {
             return Text(
               'No rewards data',

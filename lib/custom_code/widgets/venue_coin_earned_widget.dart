@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/responsive_helper.dart';
@@ -39,102 +40,93 @@ class _VenueCoinEarnedWidgetState extends State<VenueCoinEarnedWidget> {
   };
   bool _isLoading = true;
   bool _showInfo = false;
+  StreamSubscription<QuerySnapshot>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    _loadMetricsData();
+    _subscribeToMetrics();
   }
 
   @override
   void didUpdateWidget(VenueCoinEarnedWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.venueId != widget.venueId) {
-      _loadMetricsData();
+      _subscribeToMetrics();
     }
   }
 
-  Future<void> _loadMetricsData() async {
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeToMetrics() {
+    _subscription?.cancel();
+
     if (widget.venueId.isEmpty) {
       setState(() {
-        _metricsData = {
-          'monthly': 0,
-          'weekly': 0,
-          'daily': 0,
-          'total': 0,
-        };
+        _metricsData = {'monthly': 0, 'weekly': 0, 'daily': 0, 'total': 0};
         _isLoading = false;
       });
       return;
     }
 
-    setState(() {
-      _isLoading = true;
+    setState(() => _isLoading = true);
+
+    final query = FirebaseFirestore.instance
+        .collection('userVenueProgress')
+        .where('venueId', isEqualTo: widget.venueId);
+
+    _subscription = query.snapshots().listen((snapshot) {
+      _processMetrics(snapshot);
+    }, onError: (error) {
+      setState(() => _isLoading = false);
     });
+  }
 
-    try {
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final startOfWeek = now.subtract(const Duration(days: 7));
-      final startOfMonth = now.subtract(const Duration(days: 30));
+  void _processMetrics(QuerySnapshot snapshot) {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final startOfWeek = now.subtract(const Duration(days: 7));
+    final startOfMonth = now.subtract(const Duration(days: 30));
 
-      final userVenueProgressQuery = await FirebaseFirestore.instance
-          .collection('userVenueProgress')
-          .where('venueId', isEqualTo: widget.venueId)
-          .get();
+    int dailyCoins = 0;
+    int weeklyCoins = 0;
+    int monthlyCoins = 0;
+    int totalCoins = 0;
 
-      int dailyCoins = 0;
-      int weeklyCoins = 0;
-      int monthlyCoins = 0;
-      int totalCoins = 0;
-
-      for (var doc in userVenueProgressQuery.docs) {
-        final data = doc.data();
-        if (data['venueId'] != widget.venueId) continue;
-        final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
-        if (createdTime == null) continue;
-        // "coinsFromGame" is expected to be an integer, but handle num just in case.
-        int coins = 0;
-        if (data['coinsFromGame'] is int) {
-          coins = data['coinsFromGame'] as int;
-        } else if (data['coinsFromGame'] is num) {
-          coins = (data['coinsFromGame'] as num).toInt();
-        }
-        totalCoins += coins;
-        if (createdTime.isAfter(startOfMonth)) {
-          monthlyCoins += coins;
-        }
-        if (createdTime.isAfter(startOfWeek)) {
-          weeklyCoins += coins;
-        }
-        if (createdTime.isAfter(startOfDay)) {
-          dailyCoins += coins;
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      if (data['runHistory'] is List) {
+        final runHistory = data['runHistory'] as List;
+        for (var game in runHistory) {
+          if (game is Map<String, dynamic>) {
+            final coins = game['coins'] as int? ?? 0;
+            final timestamp = game['timestamp'] as Timestamp?;
+            if (coins > 0 && timestamp != null) {
+              totalCoins += coins;
+              final gameTime = timestamp.toDate();
+              if (gameTime.isAfter(startOfMonth)) monthlyCoins += coins;
+              if (gameTime.isAfter(startOfWeek)) weeklyCoins += coins;
+              if (gameTime.isAfter(startOfDay)) dailyCoins += coins;
+            }
+          }
         }
       }
+    }
 
-      if (mounted) {
-        setState(() {
-          _metricsData = {
-            'monthly': monthlyCoins,
-            'weekly': weeklyCoins,
-            'daily': dailyCoins,
-            'total': totalCoins,
-          };
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _metricsData = {
-            'monthly': 0,
-            'weekly': 0,
-            'daily': 0,
-            'total': 0,
-          };
-          _isLoading = false;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _metricsData = {
+          'monthly': monthlyCoins,
+          'weekly': weeklyCoins,
+          'daily': dailyCoins,
+          'total': totalCoins,
+        };
+        _isLoading = false;
+      });
     }
   }
 

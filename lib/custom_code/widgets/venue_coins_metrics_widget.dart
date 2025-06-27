@@ -2,6 +2,7 @@
 // Imports other custom widgets
 // Imports custom actions
 // Imports custom functions
+import 'dart:async';
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
@@ -23,7 +24,7 @@ class VenueCoinsMetricsWidget extends StatefulWidget {
     this.dailyColor = const Color(0xFF6FA6A0),
     this.totalSpendColor = const Color(0xFFFF8B64),
     this.totalCoinsColor = const Color(0xFFF24738),
-    this.coinValue = 0.10,
+    this.coinValue = 0.08,
     this.showPreviewData = false,
   });
 
@@ -55,23 +56,31 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
   };
   bool _isLoading = true;
   bool _showInfo = false;
+  StreamSubscription<QuerySnapshot>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    _loadMetricsData();
+    _subscribeToMetrics();
   }
 
   @override
   void didUpdateWidget(VenueCoinsMetricsWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reload metrics if venueId changes
     if (oldWidget.venueId != widget.venueId) {
-      _loadMetricsData();
+      _subscribeToMetrics();
     }
   }
 
-  Future<void> _loadMetricsData() async {
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeToMetrics() {
+    _subscription?.cancel();
+
     if (widget.venueId.isEmpty) {
       setState(() {
         _metricsData = {
@@ -86,81 +95,76 @@ class _VenueCoinsMetricsWidgetState extends State<VenueCoinsMetricsWidget> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
+    setState(() => _isLoading = true);
+
+    final query = FirebaseFirestore.instance
+        .collection('userVenueProgress')
+        .where('venueId', isEqualTo: widget.venueId);
+
+    _subscription = query.snapshots().listen((snapshot) {
+      _processMetrics(snapshot);
+    }, onError: (error) {
+      setState(() => _isLoading = false);
     });
+  }
 
-    try {
-      print('Loading coin metrics data for venue: ${widget.venueId}');
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final startOfWeek = now.subtract(const Duration(days: 7));
-      final startOfMonth = now.subtract(const Duration(days: 30));
+  void _processMetrics(QuerySnapshot snapshot) {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final startOfWeek = now.subtract(const Duration(days: 7));
+    final startOfMonth = now.subtract(const Duration(days: 30));
 
-      // Query userVenueProgress for this venue
-      final userVenueProgressQuery = await FirebaseFirestore.instance
-          .collection('userVenueProgress')
-          .where('venueId', isEqualTo: widget.venueId)
-          .get();
+    int dailyCoins = 0;
+    int weeklyCoins = 0;
+    int monthlyCoins = 0;
+    int totalCoins = 0;
 
-      int dailyCoins = 0;
-      int weeklyCoins = 0;
-      int monthlyCoins = 0;
-      int totalCoins = 0;
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      int coins = 0;
+      if (data['coinsFromVenue'] is int) {
+        coins = data['coinsFromVenue'] as int;
+      } else if (data['coinsFromVenue'] is num) {
+        coins = (data['coinsFromVenue'] as num).toInt();
+      }
+      totalCoins += coins;
 
-      for (var doc in userVenueProgressQuery.docs) {
-        final data = doc.data();
-        // Double-check venueId matches
-        if (data['venueId'] != widget.venueId) continue;
-        final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
-        if (createdTime == null) continue;
-        int coins = 0;
-        if (data['coinsFromVenue'] is int) {
-          coins = data['coinsFromVenue'] as int;
-        } else if (data['coinsFromVenue'] is num) {
-          coins = (data['coinsFromVenue'] as num).toInt();
-        }
-        totalCoins += coins;
-        if (createdTime.isAfter(startOfMonth)) {
-          monthlyCoins += coins;
-        }
-        if (createdTime.isAfter(startOfWeek)) {
-          weeklyCoins += coins;
-        }
-        if (createdTime.isAfter(startOfDay)) {
-          dailyCoins += coins;
+      DateTime? timeToUse;
+      if (data['sessionLastUpdated'] != null) {
+        if (data['sessionLastUpdated'] is Timestamp) {
+          timeToUse = (data['sessionLastUpdated'] as Timestamp).toDate();
+        } else if (data['sessionLastUpdated'] is String) {
+          try {
+            timeToUse = DateTime.parse(data['sessionLastUpdated'] as String);
+          } catch (e) {
+            // Fallback will be used
+          }
         }
       }
-
-      final totalSpent = totalCoins * widget.coinValue;
-
-      if (mounted) {
-        setState(() {
-          _metricsData = {
-            'monthly': monthlyCoins,
-            'weekly': weeklyCoins,
-            'daily': dailyCoins,
-            'totalSpent': totalSpent,
-            'totalCoins': totalCoins,
-          };
-          _isLoading = false;
-        });
+      if (timeToUse == null && data['createdTime'] is Timestamp) {
+        timeToUse = (data['createdTime'] as Timestamp).toDate();
       }
-      print('Updated coin metrics for ${widget.venueId} (userVenueProgress) - Monthly: $monthlyCoins, Weekly: $weeklyCoins, Daily: $dailyCoins, Total Coins: $totalCoins, TotalSpent: $totalSpent');
-    } catch (e) {
-      print('Error loading metrics data: $e');
-      if (mounted) {
-        setState(() {
-          _metricsData = {
-            'monthly': 0,
-            'weekly': 0,
-            'daily': 0,
-            'totalSpent': 0.0,
-            'totalCoins': 0,
-          };
-          _isLoading = false;
-        });
+
+      if (timeToUse != null) {
+        if (timeToUse.isAfter(startOfMonth)) monthlyCoins += coins;
+        if (timeToUse.isAfter(startOfWeek)) weeklyCoins += coins;
+        if (timeToUse.isAfter(startOfDay)) dailyCoins += coins;
       }
+    }
+
+    final totalSpent = totalCoins * widget.coinValue;
+
+    if (mounted) {
+      setState(() {
+        _metricsData = {
+          'monthly': monthlyCoins,
+          'weekly': weeklyCoins,
+          'daily': dailyCoins,
+          'totalSpent': totalSpent,
+          'totalCoins': totalCoins,
+        };
+        _isLoading = false;
+      });
     }
   }
 

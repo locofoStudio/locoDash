@@ -2,6 +2,7 @@
 // Imports other custom widgets
 // Imports custom actions
 // Imports custom functions
+import 'dart:async';
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
@@ -54,25 +55,32 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
   };
   bool _isLoading = true;
   bool _showInfo = false;
+  StreamSubscription<QuerySnapshot>? _userMetricsSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadUserMetrics();
+    _subscribeToUserMetrics();
   }
 
   @override
   void didUpdateWidget(VenueUserMetricsWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reload metrics if venueId changes
     if (oldWidget.venueId != widget.venueId) {
-      _loadUserMetrics();
+      _subscribeToUserMetrics();
     }
   }
 
-  Future<void> _loadUserMetrics() async {
+  @override
+  void dispose() {
+    _userMetricsSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeToUserMetrics() {
+    _userMetricsSubscription?.cancel();
+
     if (widget.venueId.isEmpty) {
-      print('VenueUserMetricsWidget: Empty venueId, returning zero metrics');
       setState(() {
         _userMetrics = {
           'monthly': 0,
@@ -93,118 +101,95 @@ class _VenueUserMetricsWidgetState extends State<VenueUserMetricsWidget> {
       _isLoading = true;
     });
 
-    try {
-      print('VenueUserMetricsWidget: Loading user metrics for venue: ${widget.venueId}');
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final startOfWeek = now.subtract(const Duration(days: 7));
-      final startOfMonth = now.subtract(const Duration(days: 30));
+    final query = FirebaseFirestore.instance
+        .collection('userVenueProgress')
+        .where('venueId', isEqualTo: widget.venueId);
 
-      print('VenueUserMetricsWidget: Querying userVenueProgress collection...');
-      // Query userVenueProgress for this venue
-      final userVenueProgressQuery = await FirebaseFirestore.instance
-          .collection('userVenueProgress')
-          .where('venueId', isEqualTo: widget.venueId)
-          .get();
+    _userMetricsSubscription = query.snapshots().listen((snapshot) {
+      print('Received update from userVenueProgress stream');
+      _processUserMetrics(snapshot);
+    }, onError: (error) {
+      print('Error listening to user metrics: $error');
+      setState(() {
+        _isLoading = false;
+      });
+    });
+  }
 
-      print('VenueUserMetricsWidget: Found ${userVenueProgressQuery.docs.length} userVenueProgress documents');
+  void _processUserMetrics(QuerySnapshot snapshot) {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final startOfWeek = now.subtract(const Duration(days: 7));
+    final startOfMonth = now.subtract(const Duration(days: 30));
 
-      Set<String> monthlyUsers = {};
-      Set<String> weeklyUsers = {};
-      Set<String> dailyUsers = {};
-      Set<String> totalUsers = {};
-      Set<String> monthlyAnonymous = {};
-      Set<String> weeklyAnonymous = {};
-      Set<String> dailyAnonymous = {};
-      Set<String> totalAnonymous = {};
+    Set<String> monthlyUsers = {};
+    Set<String> weeklyUsers = {};
+    Set<String> dailyUsers = {};
+    Set<String> totalUsers = {};
+    Set<String> monthlyAnonymous = {};
+    Set<String> weeklyAnonymous = {};
+    Set<String> dailyAnonymous = {};
+    Set<String> totalAnonymous = {};
 
-      // Track users we need to check for anonymous status
-      Map<String, DateTime> userCreatedTimes = {};
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final userId = data['userId'] as String?;
+      if (userId == null) continue;
 
-      for (var doc in userVenueProgressQuery.docs) {
-        final data = doc.data();
-        final docId = doc.id;
-        print('VenueUserMetricsWidget: Processing document $docId');
-        print('VenueUserMetricsWidget: Document data: $data');
-        
-        final createdTime = (data['createdTime'] as Timestamp?)?.toDate();
-        if (createdTime == null) {
-          print('VenueUserMetricsWidget: No createdTime for document $docId, skipping');
-          continue;
+      totalUsers.add(userId);
+
+      final displayName = data['displayName'] as String?;
+      final isAnonymous = displayName == 'Guest';
+      if (isAnonymous) {
+        totalAnonymous.add(userId);
+      }
+
+      DateTime? timeToUse;
+      if (data['sessionLastUpdated'] != null) {
+        if (data['sessionLastUpdated'] is Timestamp) {
+          timeToUse = (data['sessionLastUpdated'] as Timestamp).toDate();
+        } else if (data['sessionLastUpdated'] is String) {
+          try {
+            timeToUse = DateTime.parse(data['sessionLastUpdated'] as String);
+          } catch (e) {
+            // Fallback will be used
+          }
         }
-        
-        // Get userId and userType directly from document data
-        final userId = data['userId'] as String?;
-        final userType = data['userType'] as String?;
-        
-        print('VenueUserMetricsWidget: userId=$userId, userType=$userType');
-        
-        if (userId == null) {
-          print('VenueUserMetricsWidget: No userId in document $docId, skipping');
-          continue;
-        }
-        
-        userCreatedTimes[userId] = createdTime;
-        totalUsers.add(userId);
-        
-        if (createdTime.isAfter(startOfMonth)) {
+      }
+      if (timeToUse == null && data['createdTime'] is Timestamp) {
+        timeToUse = (data['createdTime'] as Timestamp).toDate();
+      }
+
+      if (timeToUse != null) {
+        if (timeToUse.isAfter(startOfMonth)) {
           monthlyUsers.add(userId);
-          print('VenueUserMetricsWidget: User $userId added to monthly users');
+          if (isAnonymous) monthlyAnonymous.add(userId);
         }
-        if (createdTime.isAfter(startOfWeek)) {
+        if (timeToUse.isAfter(startOfWeek)) {
           weeklyUsers.add(userId);
-          print('VenueUserMetricsWidget: User $userId added to weekly users');
+          if (isAnonymous) weeklyAnonymous.add(userId);
         }
-        if (createdTime.isAfter(startOfDay)) {
+        if (timeToUse.isAfter(startOfDay)) {
           dailyUsers.add(userId);
-          print('VenueUserMetricsWidget: User $userId added to daily users');
-        }
-        
-        // Check if this is an anonymous user (by userType OR displayName)
-        final displayName = data['displayName'] as String?;
-        
-        if (userType == 'anonymous' || displayName == 'Guest') {
-          print('VenueUserMetricsWidget: Found anonymous user $userId (userType: $userType, displayName: $displayName)');
-          totalAnonymous.add(userId);
-          
-          if (createdTime.isAfter(startOfMonth)) {
-            monthlyAnonymous.add(userId);
-          }
-          if (createdTime.isAfter(startOfWeek)) {
-            weeklyAnonymous.add(userId);
-          }
-          if (createdTime.isAfter(startOfDay)) {
-            dailyAnonymous.add(userId);
-          }
-        } else {
-          print('VenueUserMetricsWidget: User $userId is not anonymous (userType: $userType, displayName: $displayName)');
+          if (isAnonymous) dailyAnonymous.add(userId);
         }
       }
+    }
 
-      if (mounted) {
-        setState(() {
-          _userMetrics = {
-            'monthly': monthlyUsers.length,
-            'weekly': weeklyUsers.length,
-            'daily': dailyUsers.length,
-            'total': totalUsers.length,
-            'monthlyAnonymous': monthlyAnonymous.length,
-            'weeklyAnonymous': weeklyAnonymous.length,
-            'dailyAnonymous': dailyAnonymous.length,
-            'totalAnonymous': totalAnonymous.length,
-          };
-          _isLoading = false;
-        });
-      }
-
-      print('VenueUserMetricsWidget: Updated metrics - Monthly: ${monthlyUsers.length}, Weekly: ${weeklyUsers.length}, Daily: ${dailyUsers.length}, Total: ${totalUsers.length}');
-    } catch (e) {
-      print('VenueUserMetricsWidget: Error loading user metrics: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _userMetrics = {
+          'monthly': monthlyUsers.length,
+          'weekly': weeklyUsers.length,
+          'daily': dailyUsers.length,
+          'total': totalUsers.length,
+          'monthlyAnonymous': monthlyAnonymous.length,
+          'weeklyAnonymous': weeklyAnonymous.length,
+          'dailyAnonymous': dailyAnonymous.length,
+          'totalAnonymous': totalAnonymous.length,
+        };
+        _isLoading = false;
+      });
     }
   }
 

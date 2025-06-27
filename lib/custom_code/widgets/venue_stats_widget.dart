@@ -164,29 +164,29 @@ class _VenueStatsWidgetState extends State<VenueStatsWidget> {
         }
         print('User $userId: highScore=$highScore');
       }
+      
+      // Calculate total items redeemed from user documents
+      itemsRedeemed = 0;
+      for (var doc in userVenueProgressQuery.docs) {
+        final data = doc.data();
+        if (data['offers'] is List) {
+          itemsRedeemed += (data['offers'] as List).length;
+        }
+      }
 
       final avgHighScore =
           highScoreCount > 0 ? (totalHighScore / highScoreCount).round() : 0;
 
-      // Query offers collection for this venue
+      // Query offers collection to get total number of offers available
       int numOffers = 0;
-      itemsRedeemed = 0; // reset, will be calculated from offers
       try {
         final offersQuery = await FirebaseFirestore.instance
             .collection('offers')
             .where('venueId', isEqualTo: widget.venueId)
             .get();
         numOffers = offersQuery.docs.length;
-
-        // Sum the number of redeemed users across all offers.
-        for (var doc in offersQuery.docs) {
-          final data = doc.data();
-          if (data['redeemedUsers'] is List) {
-            itemsRedeemed += (data['redeemedUsers'] as List).length;
-          }
-        }
       } catch (e) {
-        print('Error fetching offers: $e');
+        print('Error fetching offers count: $e');
       }
 
       if (mounted) {
