@@ -10,4 +10,4 @@ void registerWebViewFactory(String viewType, PlatformViewFactory factory) {
   // ignore: undefined_prefixed_name
   ui.platformViewRegistry.registerViewFactory(viewType, factory);
   }
-} 
+}

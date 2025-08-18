@@ -18,6 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   final _authService = AuthService();
   bool _isLoading = false;
   String? _errorMessage;
+  String _selectedMode = 'Dashboard'; // 'Dashboard' or 'Cashier'
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -37,6 +38,17 @@ class _LoginPageState extends State<LoginPage> {
       
       if (venues.isEmpty) {
         throw Exception('No venues found for this account');
+      }
+
+      // Navigate based on selected mode - directly to chosen interface
+      if (mounted) {
+        if (_selectedMode == 'Dashboard') {
+          // Go directly to dashboard with AuthWrapper
+          Navigator.of(context).pushReplacementNamed('/dashboard');
+        } else {
+          // Go directly to cashier scanner
+          Navigator.of(context).pushReplacementNamed('/cashier');
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -162,6 +174,79 @@ class _LoginPageState extends State<LoginPage> {
               fontWeight: FontWeight.bold,
               fontFamily: 'Roboto Flex',
             ),
+          ),
+          const SizedBox(height: 22),
+          // Dashboard/Cashier Selection
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedMode = 'Dashboard'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _selectedMode == 'Dashboard' 
+                          ? const Color(0xFFE86526) 
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _selectedMode == 'Dashboard' 
+                            ? const Color(0xFFE86526) 
+                            : const Color(0xFF525E5C),
+                      ),
+                    ),
+                    child: Text(
+                      'Dashboard',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _selectedMode == 'Dashboard' 
+                            ? Colors.white 
+                            : const Color(0xFFDCDCDC),
+                        fontSize: 14,
+                        fontFamily: 'Roboto Flex',
+                        fontWeight: _selectedMode == 'Dashboard' 
+                            ? FontWeight.w600 
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedMode = 'Cashier'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _selectedMode == 'Cashier' 
+                          ? const Color(0xFF6366F1) 
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _selectedMode == 'Cashier' 
+                            ? const Color(0xFF6366F1) 
+                            : const Color(0xFF525E5C),
+                      ),
+                    ),
+                    child: Text(
+                      'Cashier',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _selectedMode == 'Cashier' 
+                            ? Colors.white 
+                            : const Color(0xFFDCDCDC),
+                        fontSize: 14,
+                        fontFamily: 'Roboto Flex',
+                        fontWeight: _selectedMode == 'Cashier' 
+                            ? FontWeight.w600 
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 22),
           TextFormField(

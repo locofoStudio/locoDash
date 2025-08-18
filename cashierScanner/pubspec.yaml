@@ -1,0 +1,37 @@
+name: cashier_scanner
+
+description: "Cashier Scanner App for Loco Loyalty System"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase dependencies (same as dashboard)
+  firebase_core: ^3.13.1
+  cloud_firestore: ^5.6.8
+  cloud_firestore_web: ^4.4.8
+  js: ^0.6.7
+  
+  # UI packages (same as dashboard)
+  google_fonts: ^6.2.1
+  cupertino_icons: ^1.0.2
+  
+  # QR scanning
+  mobile_scanner: ^3.5.6
+  
+  # Utilities
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

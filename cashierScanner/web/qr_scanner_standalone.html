@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="Permissions-Policy" content="camera=*">
+    <title>QR Scanner</title>
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+    <style>
+      body { 
+        margin: 0; 
+        background: #222; 
+        color: #fff; 
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+      #video { 
+        width: 100vw; 
+        height: 100vh; 
+        object-fit: cover;
+      }
+      #canvas {
+        display: none;
+      }
+      #close-btn { 
+        position: absolute; 
+        top: 20px; 
+        right: 20px; 
+        z-index: 1000; 
+        background: rgba(0,0,0,0.7); 
+        color: #fff; 
+        border: none; 
+        padding: 12px 20px; 
+        border-radius: 8px; 
+        cursor: pointer;
+        font-size: 16px;
+      }
+      #qr-result { 
+        position: absolute;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center; 
+        font-size: 18px; 
+        background: rgba(0,0,0,0.8);
+        padding: 16px 24px;
+        border-radius: 12px;
+        max-width: 80%;
+        word-break: break-all;
+        z-index: 1000;
+      }
+      #scanning-box {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 250px;
+        height: 250px;
+        border: 3px solid #6366F1;
+        border-radius: 16px;
+        z-index: 500;
+        pointer-events: none;
+      }
+      #scanning-line {
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: #6366F1;
+        animation: scan 2s linear infinite;
+      }
+      @keyframes scan {
+        0% { top: 0; }
+        100% { top: 100%; }
+      }
+      .debug-info {
+        position: absolute;
+        top: 80px;
+        left: 20px;
+        background: rgba(0,0,0,0.8);
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 1000;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="close-btn" onclick="closeScanner()">✕ Close</button>
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div id="scanning-box">
+      <div id="scanning-line"></div>
+    </div>
+    <div id="qr-result">Position QR code within the frame</div>
+    <div class="debug-info" id="debug"></div>
+    
+
+    <script>
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const resultDiv = document.getElementById('qr-result');
+      const debugDiv = document.getElementById('debug');
+      
+      let scanning = true;
+      let stream = null;
+      let codeReader = null;
+      
+      // Simple mobile detection
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      function updateDebug(message) {
+        console.log(message);
+        debugDiv.textContent = message;
+      }
+      
+      function closeScanner() {
+        scanning = false;
+        if (codeReader) {
+          codeReader.reset();
+        }
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        window.parent.postMessage({ type: 'qr_cancel' }, '*');
+      }
+      
+
+      
+      async function startCamera() {
+        try {
+          updateDebug('Requesting camera permission...');
+          
+          // First, request camera permission explicitly
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          });
+          
+          updateDebug('Camera permission granted');
+          
+          // Stop the stream as ZXing will handle it
+          stream.getTracks().forEach(track => track.stop());
+          
+          // Initialize ZXing code reader
+          codeReader = new ZXing.BrowserQRCodeReader();
+          updateDebug(`ZXing initialized (Mobile: ${isMobile})`);
+          
+          // Try to get video devices
+          let videoInputDevices = [];
+          try {
+            videoInputDevices = await codeReader.listVideoInputDevices();
+            updateDebug(`Found ${videoInputDevices.length} cameras`);
+          } catch (e) {
+            updateDebug('Could not list cameras, using default');
+          }
+          
+          // Try different camera selection strategies
+          let selectedDeviceId = null;
+          
+          if (videoInputDevices.length > 0) {
+            // Strategy 1: Look for back/environment camera
+            const backCamera = videoInputDevices.find(device => 
+              device.label.toLowerCase().includes('back') || 
+              device.label.toLowerCase().includes('environment')
+            );
+            
+            // Strategy 2: Use last camera (often back camera on mobile)
+            const lastCamera = videoInputDevices[videoInputDevices.length - 1];
+            
+            selectedDeviceId = backCamera?.deviceId || lastCamera?.deviceId;
+            updateDebug(`Selected camera: ${selectedDeviceId}`);
+          }
+          
+          // Start decoding with fallback
+          const startDecoding = () => {
+            codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
+              if (result) {
+                const decodedText = result.getText();
+                
+                console.log('=== ZXING QR SUCCESS ===');
+                console.log('QR Code detected:', decodedText);
+                console.log('QR Code length:', decodedText.length);
+                console.log('QR Code bytes:', Array.from(decodedText).map(c => c.charCodeAt(0)));
+                console.log('Is mobile:', isMobile);
+                console.log('Format:', result.getBarcodeFormat());
+                console.log('Result points:', result.getResultPoints());
+                
+                updateDebug('QR detected: ' + decodedText.substring(0, 20) + '...');
+                resultDiv.textContent = 'Scanned: ' + decodedText;
+                
+                // Send result and stop scanning
+                scanning = false;
+                codeReader.reset();
+                window.parent.postMessage({ 
+                  type: 'qr_scanned', 
+                  data: decodedText 
+                }, '*');
+              }
+              
+              if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.error('ZXing error:', err);
+              }
+            });
+          };
+          
+          try {
+            startDecoding();
+            updateDebug('ZXing scanner started successfully');
+          } catch (e) {
+            updateDebug('Retrying without device ID...');
+            selectedDeviceId = null;
+            startDecoding();
+          }
+          
+        } catch (err) {
+          updateDebug('Camera error: ' + err.message);
+          resultDiv.textContent = 'Camera access denied. Please allow camera access and refresh.';
+          console.error('Camera startup error:', err);
+        }
+      }
+      
+                   // ZXing handles scanning automatically, so we don't need the manual scanFrame function
+      
+      // Start camera when page loads
+      startCamera();
+      
+              // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            scanning = false;
+            if (codeReader) {
+              codeReader.reset();
+            }
+          } else if (!scanning) {
+            scanning = true;
+            startCamera();
+          }
+        });
+    </script>
+  </body>
+</html>

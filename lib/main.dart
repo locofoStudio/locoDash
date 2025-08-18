@@ -4,6 +4,8 @@ import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'pages/landing_page.dart';
 import 'pages/login_page.dart';
+import 'pages/cashier_scanner_page.dart';
+
 import 'backend/backend.dart';
 import 'backend/firebase_options.dart';
 import 'services/auth_service.dart';
@@ -45,10 +47,17 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Roboto Flex',
       ),
       debugShowCheckedModeBanner: false,
-      home: firebaseInitialized
-          ? const AuthWrapper()
-          : const Center(child: Text('Error initializing Firebase')),
+      initialRoute: '/',
       routes: {
+        '/': (context) => firebaseInitialized
+            ? const LoginPage()
+            : const Center(child: Text('Error initializing Firebase')),
+        '/dashboard': (context) => firebaseInitialized
+            ? const DashboardWrapper()
+            : const Center(child: Text('Error initializing Firebase')),
+        '/cashier': (context) => firebaseInitialized
+            ? const CashierScannerPage()
+            : const Center(child: Text('Error initializing Firebase')),
         'UsersPageMobile': (context) => const Scaffold(
           backgroundColor: Color(0xFF1F2029),
           body: Center(
@@ -88,12 +97,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
         
         if (snapshot.hasData) {
-          // User is signed in
+          // User is signed in - show dashboard
           if (_selectedVenueId == null) {
             // Load user's venues and select the first one
             _loadUserVenues();
             return const Center(child: CircularProgressIndicator());
           }
+          
+          // Show dashboard for authenticated users
           return LandingPage(venueId: _selectedVenueId!);
         }
         
@@ -113,6 +124,54 @@ class _AuthWrapperState extends State<AuthWrapper> {
       }
     } catch (e) {
       // Handle error - maybe show error message or sign out
+      await _authService.signOut();
+    }
+  }
+}
+
+// Wrapper specifically for dashboard route
+class DashboardWrapper extends StatefulWidget {
+  const DashboardWrapper({super.key});
+
+  @override
+  State<DashboardWrapper> createState() => _DashboardWrapperState();
+}
+
+class _DashboardWrapperState extends State<DashboardWrapper> {
+  final AuthService _authService = AuthService();
+  String? _selectedVenueId;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: _authService.authStateChanges,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasData) {
+          if (_selectedVenueId == null) {
+            _loadUserVenues();
+            return const Center(child: CircularProgressIndicator());
+          }
+          return LandingPage(venueId: _selectedVenueId!);
+        }
+        
+        return const LoginPage();
+      },
+    );
+  }
+
+  Future<void> _loadUserVenues() async {
+    try {
+      final venues = await _authService.getUserVenues();
+      if (venues.isNotEmpty) {
+        setState(() {
+          _selectedVenueId = venues[0];
+        });
+      }
+    } catch (e) {
       await _authService.signOut();
     }
   }
