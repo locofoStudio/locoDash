@@ -305,7 +305,7 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
         backgroundColor: const Color(0xFF242529),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pushReplacementNamed('/dashboard'),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/'),
         ),
         title: const Text(
           'Cashier Scanner',
