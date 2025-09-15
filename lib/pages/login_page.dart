@@ -43,9 +43,11 @@ class _LoginPageState extends State<LoginPage> {
       // Navigate based on selected mode - directly to chosen interface
       if (mounted) {
         if (_selectedMode == 'Dashboard') {
+          print('LOGIN DEBUG: Navigating to Dashboard');
           // Go directly to dashboard with AuthWrapper
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
+          print('LOGIN DEBUG: Navigating to Cashier with venue: ${venues.first}');
           // Go directly to cashier scanner with the first available venue
           // Mark user as cashier-only (no dashboard access)
           Navigator.of(context).pushReplacementNamed(

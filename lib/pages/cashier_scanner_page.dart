@@ -59,6 +59,11 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
     final cameFromDashboard = args?['cameFromDashboard'] as bool? ?? false;
     final cashierOnly = args?['cashierOnly'] as bool? ?? false;
     
+    print('CASHIER DEBUG: Received arguments: $args');
+    print('CASHIER DEBUG: passedVenueId: $passedVenueId');
+    print('CASHIER DEBUG: cameFromDashboard: $cameFromDashboard');
+    print('CASHIER DEBUG: cashierOnly: $cashierOnly');
+    
     if (passedVenueId != null) {
       // Use the venue ID passed from dashboard or login
       setState(() {
