@@ -46,8 +46,11 @@ class _LoginPageState extends State<LoginPage> {
           // Go directly to dashboard with AuthWrapper
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
-          // Go directly to cashier scanner
-          Navigator.of(context).pushReplacementNamed('/cashier');
+          // Go directly to cashier scanner with the first available venue
+          Navigator.of(context).pushReplacementNamed(
+            '/cashier',
+            arguments: {'venueId': venues.first},
+          );
         }
       }
     } on FirebaseAuthException catch (e) {

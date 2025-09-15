@@ -37,7 +37,8 @@ class _FullScreenScannerOverlayState extends State<FullScreenScannerOverlay> {
 
     registerWebViewFactory('qr-scanner-frame', (int viewId) {
       final currentPath = html.window.location.pathname ?? '/';
-      final base = currentPath.startsWith('/dashboard') ? '/dashboard/' : '/';
+      // For local development, use the current path directly
+      final base = currentPath.endsWith('/') ? currentPath : '$currentPath/';
       final iframe = html.IFrameElement()
         ..src = '${base}qr_scanner_standalone.html'
         ..style.border = '0'

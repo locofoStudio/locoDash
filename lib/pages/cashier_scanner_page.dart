@@ -44,7 +44,28 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
   @override
   void initState() {
     super.initState();
-    _loadVenues();
+    // Delay to get context arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadVenuesWithArguments();
+    });
+  }
+  
+  void _loadVenuesWithArguments() {
+    // Check if venue ID was passed from dashboard
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final passedVenueId = args?['venueId'] as String?;
+    
+    if (passedVenueId != null) {
+      // Use the venue ID passed from dashboard
+      setState(() {
+        _selectedVenueId = passedVenueId;
+        _venueIds = [passedVenueId];
+        _loadingVenues = false;
+      });
+    } else {
+      // Fall back to loading venues normally
+      _loadVenues();
+    }
   }
 
   Future<void> _loadVenues() async {
@@ -282,6 +303,10 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
       backgroundColor: const Color(0xFF1F2029),
       appBar: AppBar(
         backgroundColor: const Color(0xFF242529),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/dashboard'),
+        ),
         title: const Text(
           'Cashier Scanner',
           style: TextStyle(

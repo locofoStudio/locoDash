@@ -192,7 +192,7 @@ class _LandingPageState extends State<LandingPage> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                onPressed: () => _openScannerModal(context),
+                onPressed: () => _redirectToCashierScanner(context),
               ),
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
@@ -223,7 +223,7 @@ class _LandingPageState extends State<LandingPage> {
             ),
           ),
         ),
-        // QR Footer Bar - Hidden for now, uncomment to restore
+        // QR Footer Bar - Hidden, using top-right QR button instead
         /*
         Positioned(
           left: 0,
@@ -244,24 +244,13 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
-  Future<void> _openScannerModal(BuildContext context) async {
-    final result = await showGeneralDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Close QR Scanner',
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, __, ___) => const FullScreenScannerOverlay(),
-      transitionBuilder: (_, anim, __, child) => SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-            .chain(CurveTween(curve: Curves.easeOut))
-            .animate(anim),
-        child: child,
-      ),
+  void _redirectToCashierScanner(BuildContext context) {
+    // Navigate to cashier scanner while maintaining current authentication and venue
+    // Pass the current venue ID as an argument
+    Navigator.of(context).pushReplacementNamed(
+      '/cashier',
+      arguments: {'venueId': _selectedVenue},
     );
-    if (result != null) {
-      _handleScannedQRCode(result);
-    }
   }
 
   void _handleScannedQRCode(String code) async {
