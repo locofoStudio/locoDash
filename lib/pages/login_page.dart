@@ -47,9 +47,13 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
           // Go directly to cashier scanner with the first available venue
+          // Mark user as cashier-only (no dashboard access)
           Navigator.of(context).pushReplacementNamed(
             '/cashier',
-            arguments: {'venueId': venues.first},
+            arguments: {
+              'venueId': venues.first,
+              'cashierOnly': true, // Restrict access to cashier only
+            },
           );
         }
       }

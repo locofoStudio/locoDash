@@ -41,6 +41,7 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
   String? _errorMessage;
   String? _successMessage;
   bool _cameFromDashboard = false; // Track if user came from dashboard
+  bool _cashierOnly = false; // Track if user is cashier-only (no dashboard access)
 
   @override
   void initState() {
@@ -52,23 +53,26 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
   }
   
   void _loadVenuesWithArguments() {
-    // Check if venue ID was passed from dashboard
+    // Check if venue ID was passed from dashboard or login
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final passedVenueId = args?['venueId'] as String?;
     final cameFromDashboard = args?['cameFromDashboard'] as bool? ?? false;
+    final cashierOnly = args?['cashierOnly'] as bool? ?? false;
     
     if (passedVenueId != null) {
-      // Use the venue ID passed from dashboard
+      // Use the venue ID passed from dashboard or login
       setState(() {
         _selectedVenueId = passedVenueId;
         _venueIds = [passedVenueId];
         _loadingVenues = false;
         _cameFromDashboard = cameFromDashboard;
+        _cashierOnly = cashierOnly;
       });
     } else {
-      // Fall back to loading venues normally (came from login)
+      // Fall back to loading venues normally (came from login without restrictions)
       setState(() {
         _cameFromDashboard = false;
+        _cashierOnly = false;
       });
       _loadVenues();
     }
@@ -312,10 +316,12 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // Go back to dashboard if user came from dashboard, otherwise go to login
-            if (_cameFromDashboard) {
+            // Go back based on user's access level and origin
+            if (_cameFromDashboard && !_cashierOnly) {
+              // Dashboard user can return to dashboard
               Navigator.of(context).pushReplacementNamed('/dashboard');
             } else {
+              // Cashier-only user or any user not from dashboard goes to login
               Navigator.of(context).pushReplacementNamed('/');
             }
           },
