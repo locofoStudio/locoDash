@@ -40,6 +40,7 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
+  bool _cameFromDashboard = false; // Track if user came from dashboard
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
     // Check if venue ID was passed from dashboard
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final passedVenueId = args?['venueId'] as String?;
+    final cameFromDashboard = args?['cameFromDashboard'] as bool? ?? false;
     
     if (passedVenueId != null) {
       // Use the venue ID passed from dashboard
@@ -61,9 +63,13 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
         _selectedVenueId = passedVenueId;
         _venueIds = [passedVenueId];
         _loadingVenues = false;
+        _cameFromDashboard = cameFromDashboard;
       });
     } else {
-      // Fall back to loading venues normally
+      // Fall back to loading venues normally (came from login)
+      setState(() {
+        _cameFromDashboard = false;
+      });
       _loadVenues();
     }
   }
@@ -305,7 +311,14 @@ class _CashierScannerPageState extends State<CashierScannerPage> {
         backgroundColor: const Color(0xFF242529),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pushReplacementNamed('/'),
+          onPressed: () {
+            // Go back to dashboard if user came from dashboard, otherwise go to login
+            if (_cameFromDashboard) {
+              Navigator.of(context).pushReplacementNamed('/dashboard');
+            } else {
+              Navigator.of(context).pushReplacementNamed('/');
+            }
+          },
         ),
         title: const Text(
           'Cashier Scanner',

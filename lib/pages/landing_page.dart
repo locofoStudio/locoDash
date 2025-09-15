@@ -246,10 +246,13 @@ class _LandingPageState extends State<LandingPage> {
 
   void _redirectToCashierScanner(BuildContext context) {
     // Navigate to cashier scanner while maintaining current authentication and venue
-    // Pass the current venue ID as an argument
+    // Pass the current venue ID and flag that user came from dashboard
     Navigator.of(context).pushReplacementNamed(
       '/cashier',
-      arguments: {'venueId': _selectedVenue},
+      arguments: {
+        'venueId': _selectedVenue,
+        'cameFromDashboard': true,
+      },
     );
   }
 
