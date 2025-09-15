@@ -223,6 +223,8 @@ class _LandingPageState extends State<LandingPage> {
             ),
           ),
         ),
+        // QR Footer Bar - Hidden for now, uncomment to restore
+        /*
         Positioned(
           left: 0,
           right: 0,
@@ -237,6 +239,7 @@ class _LandingPageState extends State<LandingPage> {
             onQrTap: () => _openScannerModal(context),
           ),
         ),
+        */
       ],
     );
   }
