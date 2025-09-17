@@ -42,6 +42,7 @@ dependencies:
   cloud_firestore_web: ^4.4.8
   firebase_auth: ^5.5.4
   firebase_auth_web: ^5.14.3
+  cloud_functions: ^5.5.1
   js: ^0.6.7
   firebase_storage: ^12.4.6
   path: ^1.8.3
@@ -61,6 +62,7 @@ dependencies:
   barcode_widget: ^2.0.4
   flutter_svg: ^2.1.0
   file_picker: ^10.1.9
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:

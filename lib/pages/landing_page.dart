@@ -21,6 +21,7 @@ import '/custom_code/widgets/offers_tab_content.dart';
 import '/custom_code/widgets/top_reward_widget.dart';
 import '/custom_code/widgets/activity_timeline_widget.dart';
 import '/custom_code/widgets/insights_dashboard_widget.dart';
+import '/custom_code/widgets/wallet_pass_designer_widget.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key, required this.venueId});
@@ -414,6 +415,8 @@ class _LandingPageState extends State<LandingPage> {
         return _buildDesktopOffersTab();
       case 3: // Leaderboard
         return _buildDesktopLeaderboardTab();
+      case 4: // Wallet Pass
+        return _buildDesktopWalletPassTab();
       default:
         return const SizedBox();
     }
@@ -621,6 +624,8 @@ class _LandingPageState extends State<LandingPage> {
         return _buildOffersTab();
       case 3: // Leaderboard
         return _buildLeaderboardTab();
+      case 4: // Wallet Pass
+        return _buildWalletPassTab();
       default:
         return const SizedBox();
     }
@@ -710,6 +715,8 @@ class _LandingPageState extends State<LandingPage> {
         _buildTabButton('Offers', 2),
         const SizedBox(width: 8),
         _buildTabButton('Leaderboard', 3),
+        const SizedBox(width: 8),
+        _buildTabButton('Wallet Pass', 4),
       ],
     );
   }
@@ -1115,6 +1122,48 @@ class _LandingPageState extends State<LandingPage> {
             ),
           ),
       ],
+    );
+  }
+
+  // Desktop wallet pass tab
+  Widget _buildDesktopWalletPassTab() {
+    if (_selectedVenue == null) {
+      return const Center(
+        child: Text(
+          'No venue selected',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+      child: WalletPassDesignerWidget(
+        venueId: _selectedVenue!,
+        showPreviewData: false,
+        width: double.infinity,
+        height: 700,
+      ),
+    );
+  }
+
+  // Mobile wallet pass tab
+  Widget _buildWalletPassTab() {
+    if (_selectedVenue == null) {
+      return const Center(
+        child: Text(
+          'No venue selected',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+      child: WalletPassDesignerWidget(
+        venueId: _selectedVenue!,
+        showPreviewData: false,
+      ),
     );
   }
 } 
